@@ -1,0 +1,16 @@
+MealLogAI 음식 검색 UI v5
+
+이번 버전 변경:
+- '무료 음식 계산' → '음식 검색'
+- 검색 / 사진 / AI 분석 빠른 선택 버튼
+- 음식 검색 결과를 이름 · 1회량 · 예상 kcal · + 버튼 형태로 개선
+- 음식 선택 후 섭취량에 따라 칼로리/탄수화물/단백질/지방 자동 계산
+- 기존 사진 추가/변경, AI 분석, 식사 수정, Supabase 로그인/동기화 기능 유지
+
+GitHub 적용:
+1. ZIP 압축 해제
+2. 저장소에서 Add file → Upload files
+3. 압축 해제한 파일 전체를 업로드
+4. Commit directly to main 선택
+5. Commit changes
+6. Vercel 배포 완료 후 Ctrl+F5

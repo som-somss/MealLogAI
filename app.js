@@ -324,9 +324,13 @@ function setEntryMode(mode){
     else $('#analyzeBtn')?.click();
   }
 }
-$('#modeSearch').onclick=()=>setEntryMode('search');
-$('#modePhoto').onclick=()=>setEntryMode('photo');
-$('#modeAI').onclick=()=>setEntryMode('ai');$('#editSteps').onclick=setSteps;document.querySelectorAll('[data-water]').forEach(b=>b.onclick=()=>addWater(+b.dataset.water));$('#undoWater').onclick=undoWater;
+// v6.6: entry mode buttons are optional. Older layouts do not contain these elements.
+// Never stop the rest of app.js when they are absent, because cancel/photo/save handlers are below.
+const modeSearchBtn=$('#modeSearch'), modePhotoBtn=$('#modePhoto'), modeAIBtn=$('#modeAI');
+if(modeSearchBtn) modeSearchBtn.onclick=()=>setEntryMode('search');
+if(modePhotoBtn) modePhotoBtn.onclick=()=>setEntryMode('photo');
+if(modeAIBtn) modeAIBtn.onclick=()=>setEntryMode('ai');
+$('#editSteps').onclick=setSteps;document.querySelectorAll('[data-water]').forEach(b=>b.onclick=()=>addWater(+b.dataset.water));$('#undoWater').onclick=undoWater;
 function mealDraftHasContent(){
   if(editingMealId) return true;
   if(photoData || ($('#memo').value||'').trim()) return true;
