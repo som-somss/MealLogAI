@@ -300,15 +300,15 @@ function setPhotoUI(previewSrc=''){
   if(has) img.src=src; else img.removeAttribute('src');
 }
 function clearPreviewUrl(){ if(photoPreviewUrl){try{URL.revokeObjectURL(photoPreviewUrl)}catch(_){ } photoPreviewUrl='';} }
-function openNewMeal(){editingMealId=null;photoData='';$('#dialogTitle').textContent='음식 기록';$('#saveTop').textContent='저장';$('#photo').value='';$('#mealType').value='아침';$('#mealTime').value=defaultTimeForDate(selectedDate);$('#foods').innerHTML='';addFood();let ni=document.querySelector('.foodRow .name');if(ni)ni.placeholder='아침 식사로 무엇을 드셨나요?';$('#memo').value='';$('#status').textContent='';setPhotoUI();$('#mealDialog').showModal()}
-function openMealEditor(m){editingMealId=m.id;photoData=m.photo||'';$('#dialogTitle').textContent='식사 기록 수정';$('#saveTop').textContent='수정 저장';$('#photo').value='';$('#mealType').value=m.type||'아침';$('#mealTime').value=m.time||defaultTimeForDate(selectedDate);$('#foods').innerHTML='';(m.foods&&m.foods.length?m.foods:[{}]).forEach(addFood);$('#memo').value=m.memo||'';$('#status').textContent='사진과 식사 내용을 수정할 수 있어요.';setPhotoUI();$('#mealDialog').showModal()}
+function showMealModal(){const d=$('#mealDialog');d.hidden=false;d.classList.add('isOpen');document.documentElement.classList.add('mealModalOpen');document.body.classList.add('mealModalOpen');setTimeout(()=>$('#cancelBtn')?.focus({preventScroll:true}),0)}
+function hideMealModal(){const d=$('#mealDialog');d.classList.remove('isOpen');d.hidden=true;document.documentElement.classList.remove('mealModalOpen');document.body.classList.remove('mealModalOpen')}
+function openNewMeal(){editingMealId=null;photoData='';$('#dialogTitle').textContent='음식 기록';$('#saveTop').textContent='저장';$('#photo').value='';$('#mealType').value='아침';$('#mealTime').value=defaultTimeForDate(selectedDate);$('#foods').innerHTML='';addFood();let ni=document.querySelector('.foodRow .name');if(ni)ni.placeholder='아침 식사로 무엇을 드셨나요?';$('#memo').value='';$('#status').textContent='';setPhotoUI();showMealModal()}
+function openMealEditor(m){editingMealId=m.id;photoData=m.photo||'';$('#dialogTitle').textContent='식사 기록 수정';$('#saveTop').textContent='수정 저장';$('#photo').value='';$('#mealType').value=m.type||'아침';$('#mealTime').value=m.time||defaultTimeForDate(selectedDate);$('#foods').innerHTML='';(m.foods&&m.foods.length?m.foods:[{}]).forEach(addFood);$('#memo').value=m.memo||'';$('#status').textContent='사진과 식사 내용을 수정할 수 있어요.';setPhotoUI();showMealModal()}
 $('#addBtn').onclick=openNewMeal;
 // v6.1: clicking the backdrop must NOT close the meal editor.
 // This prevents accidental loss of a meal while scrolling/tapping on mobile.
-$('#mealDialog').addEventListener('click',e=>{
-  if(e.target===$('#mealDialog')) e.preventDefault();
-});
-$('#mealDialog').addEventListener('cancel',e=>e.preventDefault());
+// v6.4: the meal editor is a normal fixed overlay instead of <dialog> for iPhone Safari stability.
+$('#mealDialog').addEventListener('click',e=>{ if(e.target===$('#mealDialog')) e.preventDefault(); });
 
 function setEntryMode(mode){
   document.querySelectorAll('.entryMode').forEach(b=>b.classList.remove('active'));
@@ -341,60 +341,50 @@ function closeMealEditor(){
   // Mobile: Cancel must always work immediately. Nothing is saved until Save is pressed.
   editingMealId=null; photoData=''; clearPreviewUrl();
   document.querySelectorAll('.suggestions').forEach(x=>x.hidden=true);
-  const d=$('#mealDialog'); if(d.open) d.close();
+  hideMealModal();
 }
 
 // v6.3: dedicated mobile-safe Cancel handler. Do not rely on pointerdown.
 const cancelBtn=$('#cancelBtn');
 const cancelMeal=e=>{e.preventDefault();e.stopPropagation();closeMealEditor();};
-cancelBtn.addEventListener('click',cancelMeal,false);
-cancelBtn.addEventListener('touchend',cancelMeal,{passive:false});
+cancelBtn.addEventListener('click',cancelMeal,{capture:true});
 $('#addFood').onclick=()=>addFood();$('#removePhoto').onclick=()=>{photoData='';clearPreviewUrl();$('#photo').value='';setPhotoUI();$('#status').textContent='사진을 삭제했어요. 저장하면 기록에서 제거돼요.'};
 $('#photo').onchange=async e=>{
   const f=e.target.files&&e.target.files[0]; if(!f)return;
   $('#status').textContent='사진을 불러오는 중이에요…';
   clearPreviewUrl();
   try{
-    // Show the selected iPhone photo immediately, before compression finishes.
-    photoPreviewUrl=URL.createObjectURL(f);
-    setPhotoUI(photoPreviewUrl);
-  }catch(_){ }
-  try{
-    photoData=await resize(f,1200,.78);
-    if(!photoData) throw new Error('사진을 읽지 못했어요.');
-    setPhotoUI(photoData);
-    clearPreviewUrl();
+    // FileReader works more reliably than blob URLs in the iPhone in-app browser.
+    const original=await fileToDataURL(f);
+    photoData=original;
+    setPhotoUI(original);
     $('#status').textContent='사진이 추가됐어요.';
-    requestAnimationFrame(()=>document.querySelector('#mealDialog .mealDialogBody')?.scrollTo({top:0,behavior:'smooth'}));
+    // Compress when Safari can decode the image. If not, keep the original data URL.
+    try{ const compressed=await resizeDataURL(original,1200,.78); if(compressed){photoData=compressed;setPhotoUI(compressed);} }catch(_){ }
+    const body=document.querySelector('#mealDialog .mealDialogBody'); if(body) body.scrollTop=0;
   }catch(err){
-    // Keep the local preview visible, but explain if the file cannot be saved as browser image data.
-    photoData='';
-    if(photoPreviewUrl){setPhotoUI(photoPreviewUrl); $('#status').textContent='사진 미리보기는 됐지만 저장용 변환에 실패했어요. 카메라로 다시 촬영하거나 JPG/PNG 사진을 선택해 주세요.';}
-    else {setPhotoUI(); $('#status').textContent='사진을 불러오지 못했어요. 다른 사진을 선택해 주세요.';}
+    photoData=''; setPhotoUI();
+    $('#status').textContent='사진을 불러오지 못했어요. 사진 앱에서 JPG/PNG 사진을 선택해 다시 시도해주세요.';
   }
 };
 function fileToDataURL(file){return new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>resolve(fr.result);fr.onerror=()=>reject(fr.error||new Error('파일 읽기 실패'));fr.readAsDataURL(file)})}
-async function resize(file,max,q){
-  const original=await fileToDataURL(file);
+async function resizeDataURL(original,max,q){
   return await new Promise(resolve=>{
     const im=new Image();
     im.onload=()=>{
       try{
-        const scale=Math.min(1,max/Math.max(im.naturalWidth||im.width,im.naturalHeight||im.height));
-        const c=document.createElement('canvas');
-        c.width=Math.max(1,Math.round((im.naturalWidth||im.width)*scale));
-        c.height=Math.max(1,Math.round((im.naturalHeight||im.height)*scale));
-        const ctx=c.getContext('2d'); ctx.drawImage(im,0,0,c.width,c.height);
-        resolve(c.toDataURL('image/jpeg',q));
-      }catch(_){ resolve(original) }
+        const w=im.naturalWidth||im.width,h=im.naturalHeight||im.height;
+        const scale=Math.min(1,max/Math.max(w,h));
+        const c=document.createElement('canvas');c.width=Math.max(1,Math.round(w*scale));c.height=Math.max(1,Math.round(h*scale));
+        c.getContext('2d').drawImage(im,0,0,c.width,c.height);resolve(c.toDataURL('image/jpeg',q));
+      }catch(_){resolve(original)}
     };
-    // Some iPhone photo formats may not decode through canvas in every Safari version.
-    // In that case keep the original file data so the photo can still be saved/displayed.
-    im.onerror=()=>resolve(original); im.src=original;
+    im.onerror=()=>resolve(original);im.src=original;
   });
 }
+async function resize(file,max,q){return resizeDataURL(await fileToDataURL(file),max,q)}
 $('#analyzeBtn').onclick=async()=>{let b=$('#analyzeBtn');b.disabled=true;$('#status').textContent='AI가 음식을 분석하고 있어요…';try{let res=await fetch('/api/analyze',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({image:photoData})}),data=await res.json();if(!res.ok)throw Error(data.error||'분석 실패');$('#foods').innerHTML='';(data.foods||[]).forEach(addFood);if(!(data.foods||[]).length)addFood();$('#status').textContent='AI 추정 결과예요. 음식과 양을 확인한 뒤 저장하세요.'}catch(e){$('#status').textContent=`AI 분석을 사용할 수 없어요: ${e.message} · 음식 검색은 계속 사용할 수 있어요.`}finally{b.disabled=false}};
-$('#mealForm').onsubmit=e=>{e.preventDefault();let foods=[...document.querySelectorAll('.foodRow')].map(d=>({name:d.querySelector('.name').value||'음식',grams:+d.querySelector('.grams').value||0,calories:+d.querySelector('.calories').value||0,carbs:+d.querySelector('.carbs').value||0,protein:+d.querySelector('.protein').value||0,fat:+d.querySelector('.fat').value||0})).filter(f=>f.name!=='음식'||f.calories||f.grams);let time=$('#mealTime').value||defaultTimeForDate(selectedDate);let meal={id:editingMealId||crypto.randomUUID(),type:$('#mealType').value,time,photo:photoData,foods,memo:$('#memo').value};if(editingMealId){let i=state.meals.findIndex(x=>x.id===editingMealId);if(i>=0)state.meals[i]=meal;else state.meals.push(meal)}else state.meals.push(meal);editingMealId=null;selectedDate=time.slice(0,10);save();$('#mealDialog').close()};
+$('#mealForm').onsubmit=e=>{e.preventDefault();let foods=[...document.querySelectorAll('.foodRow')].map(d=>({name:d.querySelector('.name').value||'음식',grams:+d.querySelector('.grams').value||0,calories:+d.querySelector('.calories').value||0,carbs:+d.querySelector('.carbs').value||0,protein:+d.querySelector('.protein').value||0,fat:+d.querySelector('.fat').value||0})).filter(f=>f.name!=='음식'||f.calories||f.grams);let time=$('#mealTime').value||defaultTimeForDate(selectedDate);let meal={id:editingMealId||crypto.randomUUID(),type:$('#mealType').value,time,photo:photoData,foods,memo:$('#memo').value};if(editingMealId){let i=state.meals.findIndex(x=>x.id===editingMealId);if(i>=0)state.meals[i]=meal;else state.meals.push(meal)}else state.meals.push(meal);editingMealId=null;selectedDate=time.slice(0,10);save();hideMealModal()};
 $('#settingsBtn').onclick=()=>{$('#goalInput').value=state.goal;$('#targetWeightInput').value=state.targetWeight||'';$('#stepsGoalInput').value=state.stepsGoal||8000;$('#waterGoalInput').value=state.waterGoal||2000;$('#settingsDialog').showModal()};$('#settingsClose').onclick=()=>$('#settingsDialog').close();$('#saveSettings').onclick=()=>{state.goal=+$('#goalInput').value||1800;let tw=+$('#targetWeightInput').value;state.targetWeight=tw>0?tw:null;state.stepsGoal=+$('#stepsGoalInput').value||8000;state.waterGoal=+$('#waterGoalInput').value||2000;save();$('#settingsDialog').close()};
 let statsDays=7;
 function dayKeyOffset(n){let d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+n);return localDateKey(d)}
