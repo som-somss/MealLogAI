@@ -136,3 +136,12 @@ h1{font-weight:800;letter-spacing:-1.25px}
   #mealDialog .mealDialogBody{padding-left:16px;padding-right:16px}
   #mealDialog .photo{height:220px}
 }
+
+
+/* v6.3 iPhone: photo preview + cancel tap hardening */
+#mealDialog #preview[hidden]{display:none!important}
+#mealDialog #preview:not([hidden]){display:block!important;width:100%;height:100%;object-fit:cover}
+#mealDialog #photoText[hidden]{display:none!important}
+#mealDialog #cancelBtn{pointer-events:auto!important;position:relative;z-index:1000!important;-webkit-tap-highlight-color:transparent}
+#mealDialog .dialogHead{pointer-events:auto!important}
+#mealDialog .mealDialogBody{padding-bottom:max(32px,env(safe-area-inset-bottom))}

@@ -286,7 +286,20 @@ function chooseFood(row,f){const idx=FOOD_DB.indexOf(f);row.dataset.dbIndex=idx;
 function showSuggestions(row,q){let box=row.querySelector('.suggestions'),ms=findFoods(q);box.innerHTML='';if(!q||!ms.length){box.hidden=true;return}ms.forEach(f=>{let b=document.createElement('button');b.type='button';b.className='suggestion';b.innerHTML=`<b>${f.name}</b><small>100g 기준 ${f.calories} kcal · 탄 ${f.carbs}g · 단 ${f.protein}g · 지 ${f.fat}g</small>`;b.onclick=()=>chooseFood(row,f);box.appendChild(b)});box.hidden=false}
 function addFood(f={}){let d=document.createElement('div');d.className='foodRow';d.innerHTML=`<button type="button" class="removeFood">×</button><div class="foodTop"><div class="foodNameWrap"><input class="name" placeholder="음식명 또는 메뉴를 검색하세요" autocomplete="off" value="${f.name||''}"><div class="suggestions" hidden></div></div><input class="grams" type="number" min="0" placeholder="g" value="${f.grams||''}"></div><div class="portionBar"><select class="portion" hidden></select><span class="dbBadge" hidden>영양 자동 계산</span></div><div class="nutrition"><label class="nutriField"><span>칼로리</span><div><input class="calories" type="number" min="0" step="1" placeholder="0" value="${f.calories??''}"><em>kcal</em></div></label><label class="nutriField"><span>탄수화물</span><div><input class="carbs" type="number" min="0" step="0.1" placeholder="0.0" value="${f.carbs??''}"><em>g</em></div></label><label class="nutriField"><span>단백질</span><div><input class="protein" type="number" min="0" step="0.1" placeholder="0.0" value="${f.protein??''}"><em>g</em></div></label><label class="nutriField"><span>지방</span><div><input class="fat" type="number" min="0" step="0.1" placeholder="0.0" value="${f.fat??''}"><em>g</em></div></label></div>`;$('#foods').appendChild(d);let name=d.querySelector('.name'),g=d.querySelector('.grams'),p=d.querySelector('.portion');name.oninput=()=>{delete d.dataset.dbIndex;p.hidden=true;d.querySelector('.dbBadge').hidden=true;showSuggestions(d,name.value)};name.onfocus=()=>showSuggestions(d,name.value);g.oninput=()=>calcRow(d);p.onchange=()=>{g.value=p.value;calcRow(d)};d.querySelector('.removeFood').onclick=()=>document.querySelectorAll('.foodRow').length>1?d.remove():null;if(f.name){let ex=FOOD_DB.find(x=>norm(x.name)===norm(f.name));if(ex&&!f.calories)chooseFood(d,ex)}}
 document.addEventListener('click',e=>{if(!e.target.closest('.foodNameWrap'))document.querySelectorAll('.suggestions').forEach(x=>x.hidden=true)});
-function setPhotoUI(){let has=!!photoData;$('#preview').hidden=!has;$('#photoText').hidden=has;$('#removePhoto').hidden=!has;$('#analyzeBtn').disabled=!has;if(has)$('#preview').src=photoData}
+let photoPreviewUrl='';
+function setPhotoUI(previewSrc=''){
+  const img=$('#preview'), text=$('#photoText');
+  const src=previewSrc||photoData||'';
+  const has=!!src;
+  img.hidden=!has;
+  img.style.display=has?'block':'none';
+  text.hidden=has;
+  text.style.display=has?'none':'';
+  $('#removePhoto').hidden=!has;
+  $('#analyzeBtn').disabled=!photoData;
+  if(has) img.src=src; else img.removeAttribute('src');
+}
+function clearPreviewUrl(){ if(photoPreviewUrl){try{URL.revokeObjectURL(photoPreviewUrl)}catch(_){ } photoPreviewUrl='';} }
 function openNewMeal(){editingMealId=null;photoData='';$('#dialogTitle').textContent='음식 기록';$('#saveTop').textContent='저장';$('#photo').value='';$('#mealType').value='아침';$('#mealTime').value=defaultTimeForDate(selectedDate);$('#foods').innerHTML='';addFood();let ni=document.querySelector('.foodRow .name');if(ni)ni.placeholder='아침 식사로 무엇을 드셨나요?';$('#memo').value='';$('#status').textContent='';setPhotoUI();$('#mealDialog').showModal()}
 function openMealEditor(m){editingMealId=m.id;photoData=m.photo||'';$('#dialogTitle').textContent='식사 기록 수정';$('#saveTop').textContent='수정 저장';$('#photo').value='';$('#mealType').value=m.type||'아침';$('#mealTime').value=m.time||defaultTimeForDate(selectedDate);$('#foods').innerHTML='';(m.foods&&m.foods.length?m.foods:[{}]).forEach(addFood);$('#memo').value=m.memo||'';$('#status').textContent='사진과 식사 내용을 수정할 수 있어요.';setPhotoUI();$('#mealDialog').showModal()}
 $('#addBtn').onclick=openNewMeal;
@@ -325,29 +338,39 @@ function mealDraftHasContent(){
   });
 }
 function closeMealEditor(){
-  if(mealDraftHasContent() && !confirm('작성 중인 기록을 취소할까요?')) return;
-  editingMealId=null; photoData='';
+  // Mobile: Cancel must always work immediately. Nothing is saved until Save is pressed.
+  editingMealId=null; photoData=''; clearPreviewUrl();
   document.querySelectorAll('.suggestions').forEach(x=>x.hidden=true);
-  $('#mealDialog').close();
+  const d=$('#mealDialog'); if(d.open) d.close();
 }
-// Capture pointer/touch before inner layers can swallow the event on iPhone/mobile.
-$('#mealDialog').addEventListener('pointerdown',e=>{
-  if(e.target.closest('#cancelBtn')){ e.preventDefault(); e.stopPropagation(); closeMealEditor(); }
-},true);
-$('#cancelBtn').onclick=e=>{ e.preventDefault(); e.stopPropagation(); closeMealEditor(); };$('#addFood').onclick=()=>addFood();$('#removePhoto').onclick=()=>{photoData='';$('#photo').value='';setPhotoUI();$('#status').textContent='사진을 삭제했어요. 저장하면 기록에서 제거돼요.'};
+
+// v6.3: dedicated mobile-safe Cancel handler. Do not rely on pointerdown.
+const cancelBtn=$('#cancelBtn');
+const cancelMeal=e=>{e.preventDefault();e.stopPropagation();closeMealEditor();};
+cancelBtn.addEventListener('click',cancelMeal,false);
+cancelBtn.addEventListener('touchend',cancelMeal,{passive:false});
+$('#addFood').onclick=()=>addFood();$('#removePhoto').onclick=()=>{photoData='';clearPreviewUrl();$('#photo').value='';setPhotoUI();$('#status').textContent='사진을 삭제했어요. 저장하면 기록에서 제거돼요.'};
 $('#photo').onchange=async e=>{
   const f=e.target.files&&e.target.files[0]; if(!f)return;
   $('#status').textContent='사진을 불러오는 중이에요…';
+  clearPreviewUrl();
+  try{
+    // Show the selected iPhone photo immediately, before compression finishes.
+    photoPreviewUrl=URL.createObjectURL(f);
+    setPhotoUI(photoPreviewUrl);
+  }catch(_){ }
   try{
     photoData=await resize(f,1200,.78);
     if(!photoData) throw new Error('사진을 읽지 못했어요.');
-    setPhotoUI();
+    setPhotoUI(photoData);
+    clearPreviewUrl();
     $('#status').textContent='사진이 추가됐어요.';
-    // iPhone camera/file picker can alter the visual viewport; return content to the top.
     requestAnimationFrame(()=>document.querySelector('#mealDialog .mealDialogBody')?.scrollTo({top:0,behavior:'smooth'}));
   }catch(err){
-    photoData=''; setPhotoUI();
-    $('#status').textContent='사진을 불러오지 못했어요. 다른 사진을 선택해 주세요.';
+    // Keep the local preview visible, but explain if the file cannot be saved as browser image data.
+    photoData='';
+    if(photoPreviewUrl){setPhotoUI(photoPreviewUrl); $('#status').textContent='사진 미리보기는 됐지만 저장용 변환에 실패했어요. 카메라로 다시 촬영하거나 JPG/PNG 사진을 선택해 주세요.';}
+    else {setPhotoUI(); $('#status').textContent='사진을 불러오지 못했어요. 다른 사진을 선택해 주세요.';}
   }
 };
 function fileToDataURL(file){return new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>resolve(fr.result);fr.onerror=()=>reject(fr.error||new Error('파일 읽기 실패'));fr.readAsDataURL(file)})}
