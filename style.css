@@ -63,3 +63,11 @@ h1{font-weight:800;letter-spacing:-1.25px}
 .weightSummary{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}.weightSummary>div{background:#fff;border:1px solid #f0e1da;border-radius:18px;padding:14px;box-shadow:0 8px 25px #9d6c5810}.weightSummary small{display:block;font-size:10px;margin-bottom:5px;color:#a39289}.weightSummary b{font-size:17px}.weightSummary .down{color:#64855d}.weightSummary .up{color:#d97861}
 .weightLineChart{min-height:220px;position:relative}.weightLineChart svg{display:block;width:100%;height:auto;overflow:visible}.weightLineChart .axisText{font-size:9px;fill:#9f9189}.weightLineChart .gridLine{stroke:#f1e7e2;stroke-width:1}.weightLineChart .trendLine{fill:none;stroke:#f29b83;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.weightLineChart .trendArea{fill:#fff0eb}.weightLineChart .point{fill:#fff;stroke:#f29b83;stroke-width:2.5}.weightLineChart .goalWeightLine{stroke:#7e8f70;stroke-width:1.5;stroke-dasharray:5 5}.weightLineChart .goalText{font-size:9px;fill:#6f7f63}
 @media(max-width:560px){.statCards5{grid-template-columns:repeat(2,1fr)}.statCards5 .statCard:first-child{grid-column:1/-1}}
+
+/* Growth v2.1 polish */
+.barTrack{position:relative}
+.zeroMark{position:absolute;left:50%;bottom:2px;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:#e9c7bc}
+.calorieGoalLine span{top:-17px;font-size:9px;color:#6f7f63}
+.singleWeight{min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:#fffaf7;border-radius:16px;padding:22px}
+.singleWeight small{font-size:11px;color:#a5968e}.singleWeight strong{font-size:31px;margin:7px 0;color:#302b28}.singleWeight p{font-size:12px;color:#9b8e87;margin:0}
+.singleGoal{display:flex;gap:10px;align-items:center;margin-top:16px;background:#eef3e9;border-radius:999px;padding:7px 12px;color:#65745b;font-size:11px}.singleGoal b{font-size:11px}

@@ -148,10 +148,10 @@ function renderStats(){
  let totals=keys.map(k=>{let fs=state.meals.filter(m=>m.time?.slice(0,10)===k).flatMap(m=>m.foods||[]);let sum=n=>fs.reduce((a,f)=>a+(+f[n]||0),0);return {k,cal:sum('calories'),carbs:sum('carbs'),protein:sum('protein'),fat:sum('fat')}});
  let logged=totals.filter(x=>x.cal>0), average=n=>logged.length?logged.reduce((a,x)=>a+x[n],0)/logged.length:0;
  $('#avgCalories').textContent=`${Math.round(average('cal'))} kcal`;$('#loggedDays').textContent=`${logged.length}일`;$('#avgCarbs').textContent=`${Math.round(average('carbs'))}g`;$('#avgProtein').textContent=`${Math.round(average('protein'))}g`;$('#avgFat').textContent=`${Math.round(average('fat'))}g`;
- $('#statsPeriodLabel').textContent=`최근 ${statsDays}일`;$('#statsGoalCal').textContent=state.goal;
+ $('#statsPeriodLabel').textContent=`최근 ${statsDays}일`;
  let max=Math.max(state.goal,...totals.map(x=>x.cal),1),chart=$('#calorieChart');chart.innerHTML='';
- totals.forEach(x=>{let col=document.createElement('div');col.className='barCol';let h=Math.max(3,Math.round(x.cal/max*100));col.innerHTML=`<div class="barValue">${x.cal?Math.round(x.cal):''}</div><div class="barTrack"><i style="height:${h}%"></i></div><small>${statsDays===7?new Date(x.k+'T12:00').toLocaleDateString('ko-KR',{weekday:'short'}):new Date(x.k+'T12:00').getDate()}</small>`;chart.appendChild(col)});
- let goal=document.createElement('div');goal.className='calorieGoalLine';goal.style.bottom=`calc(20px + ${(state.goal/max)*148}px)`;goal.innerHTML='<span>목표</span>';chart.appendChild(goal);
+ totals.forEach((x,i)=>{let col=document.createElement('div');col.className='barCol';let h=x.cal?Math.max(3,Math.round(x.cal/max*100)):0;let label=statsDays===7?new Date(x.k+'T12:00').toLocaleDateString('ko-KR',{weekday:'short'}):((i%5===0||i===totals.length-1)?new Date(x.k+'T12:00').getDate():'');col.innerHTML=`<div class="barValue">${x.cal?Math.round(x.cal):''}</div><div class="barTrack">${x.cal?`<i style="height:${h}%"></i>`:'<span class="zeroMark"></span>'}</div><small>${label}</small>`;chart.appendChild(col)});
+ let goal=document.createElement('div');goal.className='calorieGoalLine';goal.style.bottom=`calc(20px + ${(state.goal/max)*148}px)`;goal.innerHTML=`<span>목표 ${state.goal.toLocaleString()} kcal</span>`;chart.appendChild(goal);
  let counts={};state.meals.filter(m=>keys.includes(m.time?.slice(0,10))).flatMap(m=>m.foods||[]).forEach(f=>{let n=f.name||'음식';counts[n]=(counts[n]||0)+1});
  let top=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5);$('#topFoods').innerHTML=top.length?top.map(([n,c],i)=>`<div><span><b>${i+1}</b>${n}</span><em>${c}회</em></div>`).join(''):'<p class="muted">아직 충분한 식사 기록이 없어요.</p>';
 }
@@ -166,7 +166,10 @@ function renderWeights(){
  [['#fromFirstWeight',cur&&arr.length>1?+cur.value-+first.value:null],['#fromPrevWeight',cur&&prev?+cur.value-+prev.value:null]].forEach(([s,v])=>{let e=$(s);e.classList.remove('up','down');if(v!==null)e.classList.add(v<=0?'down':'up')});
  let change=arr.length>1?(+arr.at(-1).value-+arr[0].value):0;$('#weightChange').textContent=arr.length>1?`첫 기록 대비 ${signedKg(change)}`:'';
  if(!recent.length)box.innerHTML='<p class="muted">첫 체중을 기록해보세요.</p>';
- else{
+ else if(recent.length===1){
+  let p=recent[0],goal=state.targetWeight?`<div class="singleGoal"><span>목표 체중</span><b>${(+state.targetWeight).toFixed(1)} kg</b></div>`:'';
+  box.innerHTML=`<div class="singleWeight"><small>${p.date}</small><strong>${(+p.value).toFixed(1)} kg</strong><p>체중을 한 번 더 기록하면 변화 그래프가 시작돼요.</p>${goal}</div>`;
+ } else{
   let vals=recent.map(x=>+x.value);if(state.targetWeight)vals.push(+state.targetWeight);let min=Math.min(...vals),max=Math.max(...vals);if(max-min<1){min-=.5;max+=.5}else{let pad=(max-min)*.18;min-=pad;max+=pad}
   const W=560,H=220,L=42,R=14,T=18,B=34,pw=W-L-R,ph=H-T-B,x=i=>L+(recent.length===1?pw/2:i*pw/(recent.length-1)),y=v=>T+(max-v)/(max-min)*ph;
   let grid='';for(let i=0;i<4;i++){let yy=T+i*ph/3,val=max-i*(max-min)/3;grid+=`<line class="gridLine" x1="${L}" y1="${yy}" x2="${W-R}" y2="${yy}"/><text class="axisText" x="${L-6}" y="${yy+3}" text-anchor="end">${val.toFixed(1)}</text>`}
