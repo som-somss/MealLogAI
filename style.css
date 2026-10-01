@@ -26,3 +26,12 @@ h1{font-weight:800;letter-spacing:-1.25px}
 .plateIcon:after{content:"";position:absolute;width:16px;height:16px;border:1px solid #e6bbb0;border-radius:50%;left:5px;top:5px}
 .meal p b{color:#e77f68}
 .photoStamp,.mealStamp{font-variant-numeric:tabular-nums;letter-spacing:.1px}
+
+/* Nutrition input labels + decimal input fix */
+.nutrition{align-items:end}
+.nutriField{margin:9px 0 0;min-width:0}
+.nutriField>span{display:block;margin:0 0 5px 3px;font-size:10px;color:#94867e;font-weight:700}
+.nutriField>div{position:relative}
+.nutriField input{margin:0;padding:10px 25px 10px 9px}
+.nutriField em{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-style:normal;font-size:9px;color:#b1a49c;pointer-events:none}
+@media(max-width:440px){.nutriField>span{font-size:10px}}
