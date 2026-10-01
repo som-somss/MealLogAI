@@ -35,3 +35,7 @@ h1{font-weight:800;letter-spacing:-1.25px}
 .nutriField input{margin:0;padding:10px 25px 10px 9px}
 .nutriField em{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-style:normal;font-size:9px;color:#b1a49c;pointer-events:none}
 @media(max-width:440px){.nutriField>span{font-size:10px}}
+
+/* 식사 기록 수정 + 사진 추가/변경 */
+.meal{cursor:pointer}.meal:active{transform:scale(.995)}
+.photoActions{display:flex;gap:8px;margin-top:9px}.photoChange,.photoRemove{flex:1;border:0;border-radius:12px;padding:11px;text-align:center;font-weight:700;font-size:13px;margin:0;cursor:pointer}.photoChange{background:#fff0e9;color:#9a5845}.photoRemove{background:#f1f1ed;color:#777}

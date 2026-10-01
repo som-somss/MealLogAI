@@ -28,8 +28,8 @@
 </main>
 
 <dialog id="mealDialog"><form id="mealForm">
-<div class="dialogHead"><button type="button" id="cancelBtn">취소</button><b>음식 기록</b><button type="submit" class="saveTop">저장</button></div>
-<label class="photo"><input id="photo" type="file" accept="image/*" capture="environment"><div class="photoWrap"><img id="preview" hidden><div id="photoStamp" class="photoStamp" hidden></div></div><span id="photoText"><b>📷</b><br>오늘 먹은 음식 사진<br><small>사진 촬영 또는 앨범에서 선택</small></span></label>
+<div class="dialogHead"><button type="button" id="cancelBtn">취소</button><b id="dialogTitle">음식 기록</b><button type="submit" id="saveTop" class="saveTop">저장</button></div>
+<label class="photo"><input id="photo" type="file" accept="image/*" capture="environment"><div class="photoWrap"><img id="preview" hidden><div id="photoStamp" class="photoStamp" hidden></div></div><span id="photoText"><b>📷</b><br>오늘 먹은 음식 사진<br><small>사진 촬영 또는 앨범에서 선택</small></span></label><div class="photoActions"><label for="photo" class="photoChange">📷 사진 추가·변경</label><button type="button" id="removePhoto" class="photoRemove" hidden>사진 삭제</button></div>
 <button type="button" id="analyzeBtn" class="ai" disabled>AI 음식 분석 <span>선택</span></button><p class="aiNote">사진 저장은 무료예요. AI 버튼을 누를 때만 API를 사용해요.</p><p id="status" class="status"></p>
 <div class="grid"><label>식사 종류<select id="mealType"><option>아침</option><option>점심</option><option>저녁</option><option>간식</option></select></label><label>먹은 시간<input id="mealTime" type="datetime-local"></label></div>
 <div class="dbHelp"><b>무료 음식 계산</b><span>음식명을 검색하고 먹은 양만 알려주세요.</span></div>
