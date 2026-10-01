@@ -8,11 +8,11 @@
 <link rel="stylesheet" href="/style.css"><title>MealLog AI</title>
 </head><body>
 <main>
-<header><div><small id="todayLabel"></small><h1>오늘 뭐 먹었지? <span>🍽️</span></h1></div><button id="settingsBtn" class="icon">⚙︎</button></header>
+<header><div><small id="todayLabel"></small><h1>오늘 뭐 먹었지?</h1></div><button id="settingsBtn" class="icon">⚙︎</button></header>
 
 <section class="dateNav">
 <button id="prevDay" class="dateArrow">‹</button>
-<button id="dateBtn" class="dateButton"><span id="selectedDateLabel"></span><small>날짜 바꾸기 📅</small></button>
+<button id="dateBtn" class="dateButton"><span id="selectedDateLabel"></span><small>날짜 선택</small></button>
 <button id="nextDay" class="dateArrow">›</button>
 </section>
 <div id="calendarPanel" class="calendarPanel" hidden>
@@ -22,20 +22,20 @@
 <button id="todayBtn" class="todayBtn">오늘로 이동</button>
 </div>
 
-<section class="summary"><div class="ring"><strong id="totalCal">0</strong><span>kcal</span></div><div class="summaryText"><p>맛있게 먹고 차곡차곡 ♡</p><b><span id="remainCal">1800</span> kcal 남았어요</b><div class="macros"><span class="macro carb">🍚 탄수 <b id="carbs">0</b>g</span><span class="macro protein">🥚 단백질 <b id="protein">0</b>g</span><span class="macro fat">🥑 지방 <b id="fat">0</b>g</span></div></div></section>
+<section class="summary"><div class="ring"><strong id="totalCal">0</strong><span>kcal</span></div><div class="summaryText"><p>오늘 섭취량</p><b><span id="remainCal">1800</span> kcal 남음</b><div class="macros"><span class="macro carb">탄수 <b id="carbs">0</b>g</span><span class="macro protein">단백질 <b id="protein">0</b>g</span><span class="macro fat">지방 <b id="fat">0</b>g</span></div></div></section>
 <div class="sectionTitle"><b>나의 식사 기록</b><span id="recordDateHint"></span></div>
-<section id="meals"></section><button id="addBtn" class="add"><span>＋</span> 음식 기록하기</button>
+<section id="meals"></section><button id="addBtn" class="add"><span>＋</span> 음식 기록</button>
 </main>
 
 <dialog id="mealDialog"><form id="mealForm">
-<div class="dialogHead"><button type="button" id="cancelBtn">취소</button><b>🍓 음식 기록</b><button type="submit" class="saveTop">저장</button></div>
+<div class="dialogHead"><button type="button" id="cancelBtn">취소</button><b>음식 기록</b><button type="submit" class="saveTop">저장</button></div>
 <label class="photo"><input id="photo" type="file" accept="image/*" capture="environment"><div class="photoWrap"><img id="preview" hidden><div id="photoStamp" class="photoStamp" hidden></div></div><span id="photoText"><b>📷</b><br>오늘 먹은 음식 사진<br><small>사진 촬영 또는 앨범에서 선택</small></span></label>
-<button type="button" id="analyzeBtn" class="ai" disabled>✨ AI로 음식 분석 <span>(선택)</span></button><p class="aiNote">사진 저장은 무료예요. AI 버튼을 누를 때만 API를 사용해요.</p><p id="status" class="status"></p>
-<div class="grid"><label>🍴 식사 종류<select id="mealType"><option>아침</option><option>점심</option><option>저녁</option><option>간식</option></select></label><label>⏰ 먹은 시간<input id="mealTime" type="datetime-local"></label></div>
-<div class="dbHelp"><b>🥣 무료 음식 계산</b><span>음식명을 검색하고 먹은 양만 알려주세요.</span></div>
+<button type="button" id="analyzeBtn" class="ai" disabled>AI 음식 분석 <span>선택</span></button><p class="aiNote">사진 저장은 무료예요. AI 버튼을 누를 때만 API를 사용해요.</p><p id="status" class="status"></p>
+<div class="grid"><label>식사 종류<select id="mealType"><option>아침</option><option>점심</option><option>저녁</option><option>간식</option></select></label><label>먹은 시간<input id="mealTime" type="datetime-local"></label></div>
+<div class="dbHelp"><b>무료 음식 계산</b><span>음식명을 검색하고 먹은 양만 알려주세요.</span></div>
 <div id="foods"></div><button type="button" id="addFood" class="secondary">＋ 음식 하나 더 추가</button>
-<label>📝 한 줄 메모<textarea id="memo" rows="2" placeholder="오늘 식사는 어땠나요?"></textarea></label>
+<label>메모<textarea id="memo" rows="2" placeholder="오늘 식사는 어땠나요?"></textarea></label>
 </form></dialog>
 
-<dialog id="settingsDialog"><form><div class="dialogHead"><button type="button" id="settingsClose">닫기</button><b>⚙️ 설정</b><span></span></div><label>🎯 하루 목표 칼로리<input id="goalInput" type="number" min="500" max="6000" step="50"></label><p class="hint">식사 기록과 사진은 이 기기의 브라우저에 저장돼요. 사진의 날짜·시간 표시는 식사 시간과 함께 표시되며 원본 사진은 훼손하지 않아요.</p><button type="button" id="saveSettings" class="ai">저장하기 ♡</button></form></dialog>
+<dialog id="settingsDialog"><form><div class="dialogHead"><button type="button" id="settingsClose">닫기</button><b>설정</b><span></span></div><label>하루 목표 칼로리<input id="goalInput" type="number" min="500" max="6000" step="50"></label><p class="hint">식사 기록과 사진은 이 기기의 브라우저에 저장돼요. 사진의 날짜·시간 표시는 식사 시간과 함께 표시되며 원본 사진은 훼손하지 않아요.</p><button type="button" id="saveSettings" class="ai">저장</button></form></dialog>
 <script src="/app.js"></script></body></html>

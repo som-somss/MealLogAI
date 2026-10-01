@@ -79,9 +79,9 @@ function render(){
  let sum=k=>day.flatMap(m=>m.foods||[]).reduce((a,f)=>a+(+f[k]||0),0),cal=Math.round(sum('calories'));
  $('#totalCal').textContent=cal;$('#remainCal').textContent=Math.max(0,state.goal-cal);$('#carbs').textContent=Math.round(sum('carbs'));$('#protein').textContent=Math.round(sum('protein'));$('#fat').textContent=Math.round(sum('fat'));
  $('#todayLabel').textContent=selectedDate===localDateKey(new Date())?'오늘의 식사 다이어리':'지난 식사 다이어리';
- $('#selectedDateLabel').textContent=dateText(selectedDate);$('#recordDateHint').textContent=selectedDate===localDateKey(new Date())?'오늘도 차곡차곡 ✨':'이날의 기록 ✨';
+ $('#selectedDateLabel').textContent=dateText(selectedDate);$('#recordDateHint').textContent=selectedDate===localDateKey(new Date())?'':'';
  mealsEl.innerHTML=day.length?'':'<div class="empty">이 날짜에는 아직 기록이 없어요.<br>아래 버튼으로 식사를 추가해보세요.</div>';
- day.forEach(m=>{let c=(m.foods||[]).reduce((a,f)=>a+(+f.calories||0),0),names=(m.foods||[]).map(f=>f.name).join(', '),photo=m.photo?`<div class="mealPhoto"><img src="${m.photo}"><div class="mealStamp">${stampText(m.time)}</div></div>`:`<div class="mealNoPhoto">🍽️</div>`;let el=document.createElement('article');el.className='meal';el.innerHTML=`${photo}<div><h3>${m.type} · ${new Date(m.time).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</h3><p>${names||'음식 기록'}</p><p><b>${Math.round(c)} kcal</b></p></div><button class="delete">×</button>`;el.querySelector('.delete').onclick=()=>{if(confirm('이 기록을 삭제할까요?')){state.meals=state.meals.filter(x=>x.id!==m.id);save()}};mealsEl.appendChild(el)});
+ day.forEach(m=>{let c=(m.foods||[]).reduce((a,f)=>a+(+f.calories||0),0),names=(m.foods||[]).map(f=>f.name).join(', '),photo=m.photo?`<div class="mealPhoto"><img src="${m.photo}"><div class="mealStamp">${stampText(m.time)}</div></div>`:`<div class="mealNoPhoto"><span class="plateIcon"></span></div>`;let el=document.createElement('article');el.className='meal';el.innerHTML=`${photo}<div><h3>${m.type} · ${new Date(m.time).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</h3><p>${names||'음식 기록'}</p><p><b>${Math.round(c)} kcal</b></p></div><button class="delete">×</button>`;el.querySelector('.delete').onclick=()=>{if(confirm('이 기록을 삭제할까요?')){state.meals=state.meals.filter(x=>x.id!==m.id);save()}};mealsEl.appendChild(el)});
  renderCalendar()
 }
 function changeDay(n){let d=new Date(selectedDate+"T12:00:00");d.setDate(d.getDate()+n);selectedDate=localDateKey(d);calendarMonth=new Date(d);render()}
@@ -98,7 +98,7 @@ function addFood(f={}){let d=document.createElement('div');d.className='foodRow'
 document.addEventListener('click',e=>{if(!e.target.closest('.foodNameWrap'))document.querySelectorAll('.suggestions').forEach(x=>x.hidden=true)});
 $('#addBtn').onclick=()=>{photoData='';$('#preview').hidden=true;$('#photoStamp').hidden=true;$('#photoText').hidden=false;$('#photo').value='';$('#mealTime').value=defaultTimeForDate(selectedDate);$('#foods').innerHTML='';addFood();$('#memo').value='';$('#status').textContent='';$('#analyzeBtn').disabled=true;$('#mealDialog').showModal()};
 $('#cancelBtn').onclick=()=>$('#mealDialog').close();$('#addFood').onclick=()=>addFood();
-function updatePhotoStamp(){if(!photoData)return;$('#photoStamp').textContent=`📅 ${stampText($('#mealTime').value)}`;$('#photoStamp').hidden=false}
+function updatePhotoStamp(){if(!photoData)return;$('#photoStamp').textContent=`${stampText($('#mealTime').value)}`;$('#photoStamp').hidden=false}
 $('#mealTime').onchange=updatePhotoStamp;
 $('#photo').onchange=async e=>{let f=e.target.files[0];if(!f)return;photoData=await resize(f,900,.72);$('#preview').src=photoData;$('#preview').hidden=false;$('#photoText').hidden=true;$('#analyzeBtn').disabled=false;updatePhotoStamp()};
 function resize(file,max,q){return new Promise(r=>{let im=new Image(),u=URL.createObjectURL(file);im.onload=()=>{let s=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);r(c.toDataURL('image/jpeg',q))};im.src=u})}
