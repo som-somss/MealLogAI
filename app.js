@@ -1,6 +1,6 @@
 const $=s=>document.querySelector(s), mealsEl=$('#meals'); let photoData='', editingMealId=null;
 let state=JSON.parse(localStorage.getItem('meallog-state')||'{"goal":1800,"meals":[],"weights":[]}');
-state.meals=state.meals||[]; state.weights=state.weights||[]; state.goal=state.goal||1800;
+state.meals=state.meals||[]; state.weights=state.weights||[]; state.goal=state.goal||1800; state.targetWeight=state.targetWeight||null;
 const FOOD_DB=[
 {name:'흰쌀밥',aliases:['밥','쌀밥','공기밥'],calories:130,carbs:28.2,protein:2.7,fat:.3,portions:[['1공기',210],['반공기',105],['100g',100]]},
 {name:'잡곡밥',aliases:['현미밥','잡곡'],calories:145,carbs:30,protein:3.2,fat:1.2,portions:[['1공기',210],['반공기',105],['100g',100]]},
@@ -105,7 +105,7 @@ const FOOD_DB=[
 let selectedDate=localDateKey(new Date()),calendarMonth=new Date(selectedDate+"T12:00:00");
 function localDateKey(d){let z=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`}
 function localISO(d=new Date()){let z=n=>String(n).padStart(2,'0');return `${localDateKey(d)}T${z(d.getHours())}:${z(d.getMinutes())}`}
-function save(){localStorage.setItem('meallog-state',JSON.stringify(state));render()}
+function save(){localStorage.setItem('meallog-state',JSON.stringify(state));render();if(!$('#statsView').hidden)renderStats();if(!$('#weightView').hidden)renderWeights()}
 function dateText(k){let d=new Date(k+"T12:00:00");return new Intl.DateTimeFormat('ko-KR',{month:'long',day:'numeric',weekday:'long'}).format(d)}
 function stampText(t){let d=new Date(t);return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
 function defaultTimeForDate(k){let now=new Date(), today=localDateKey(now); if(k===today)return localISO(now); return `${k}T12:00`}
@@ -140,24 +140,41 @@ $('#photo').onchange=async e=>{let f=e.target.files[0];if(!f)return;photoData=aw
 function resize(file,max,q){return new Promise(r=>{let im=new Image(),u=URL.createObjectURL(file);im.onload=()=>{let s=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);r(c.toDataURL('image/jpeg',q))};im.src=u})}
 $('#analyzeBtn').onclick=async()=>{let b=$('#analyzeBtn');b.disabled=true;$('#status').textContent='AI가 음식을 분석하고 있어요…';try{let res=await fetch('/api/analyze',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({image:photoData})}),data=await res.json();if(!res.ok)throw Error(data.error||'분석 실패');$('#foods').innerHTML='';(data.foods||[]).forEach(addFood);if(!(data.foods||[]).length)addFood();$('#status').textContent='AI 추정 결과예요. 음식과 양을 확인한 뒤 저장하세요.'}catch(e){$('#status').textContent=`AI 분석을 사용할 수 없어요: ${e.message} · 무료 음식 검색은 계속 사용할 수 있어요.`}finally{b.disabled=false}};
 $('#mealForm').onsubmit=e=>{e.preventDefault();let foods=[...document.querySelectorAll('.foodRow')].map(d=>({name:d.querySelector('.name').value||'음식',grams:+d.querySelector('.grams').value||0,calories:+d.querySelector('.calories').value||0,carbs:+d.querySelector('.carbs').value||0,protein:+d.querySelector('.protein').value||0,fat:+d.querySelector('.fat').value||0})).filter(f=>f.name!=='음식'||f.calories||f.grams);let time=$('#mealTime').value||defaultTimeForDate(selectedDate);let meal={id:editingMealId||crypto.randomUUID(),type:$('#mealType').value,time,photo:photoData,foods,memo:$('#memo').value};if(editingMealId){let i=state.meals.findIndex(x=>x.id===editingMealId);if(i>=0)state.meals[i]=meal;else state.meals.push(meal)}else state.meals.push(meal);editingMealId=null;selectedDate=time.slice(0,10);save();$('#mealDialog').close()};
-$('#settingsBtn').onclick=()=>{$('#goalInput').value=state.goal;$('#settingsDialog').showModal()};$('#settingsClose').onclick=()=>$('#settingsDialog').close();$('#saveSettings').onclick=()=>{state.goal=+$('#goalInput').value||1800;save();$('#settingsDialog').close()};
+$('#settingsBtn').onclick=()=>{$('#goalInput').value=state.goal;$('#targetWeightInput').value=state.targetWeight||'';$('#settingsDialog').showModal()};$('#settingsClose').onclick=()=>$('#settingsDialog').close();$('#saveSettings').onclick=()=>{state.goal=+$('#goalInput').value||1800;let tw=+$('#targetWeightInput').value;state.targetWeight=tw>0?tw:null;save();$('#settingsDialog').close()};
 let statsDays=7;
 function dayKeyOffset(n){let d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+n);return localDateKey(d)}
 function renderStats(){
  let keys=Array.from({length:statsDays},(_,i)=>dayKeyOffset(i-(statsDays-1)));
- let totals=keys.map(k=>{let ms=state.meals.filter(m=>m.time?.slice(0,10)===k);return {k,cal:ms.flatMap(m=>m.foods||[]).reduce((a,f)=>a+(+f.calories||0),0),protein:ms.flatMap(m=>m.foods||[]).reduce((a,f)=>a+(+f.protein||0),0)}});
- let logged=totals.filter(x=>x.cal>0), avg=logged.length?logged.reduce((a,x)=>a+x.cal,0)/logged.length:0, avgP=logged.length?logged.reduce((a,x)=>a+x.protein,0)/logged.length:0;
- $('#avgCalories').textContent=`${Math.round(avg)} kcal`; $('#loggedDays').textContent=`${logged.length}일`; $('#avgProtein').textContent=`${Math.round(avgP)}g`; $('#statsPeriodLabel').textContent=`최근 ${statsDays}일`;
- let max=Math.max(state.goal,...totals.map(x=>x.cal),1), chart=$('#calorieChart'); chart.innerHTML='';
- totals.forEach((x,i)=>{let col=document.createElement('div');col.className='barCol';let h=Math.max(3,Math.round(x.cal/max*100));col.innerHTML=`<div class="barValue">${x.cal?Math.round(x.cal):''}</div><div class="barTrack"><i style="height:${h}%"></i></div><small>${statsDays===7?new Date(x.k+'T12:00').toLocaleDateString('ko-KR',{weekday:'short'}):new Date(x.k+'T12:00').getDate()}</small>`;chart.appendChild(col)});
+ let totals=keys.map(k=>{let fs=state.meals.filter(m=>m.time?.slice(0,10)===k).flatMap(m=>m.foods||[]);let sum=n=>fs.reduce((a,f)=>a+(+f[n]||0),0);return {k,cal:sum('calories'),carbs:sum('carbs'),protein:sum('protein'),fat:sum('fat')}});
+ let logged=totals.filter(x=>x.cal>0), average=n=>logged.length?logged.reduce((a,x)=>a+x[n],0)/logged.length:0;
+ $('#avgCalories').textContent=`${Math.round(average('cal'))} kcal`;$('#loggedDays').textContent=`${logged.length}일`;$('#avgCarbs').textContent=`${Math.round(average('carbs'))}g`;$('#avgProtein').textContent=`${Math.round(average('protein'))}g`;$('#avgFat').textContent=`${Math.round(average('fat'))}g`;
+ $('#statsPeriodLabel').textContent=`최근 ${statsDays}일`;$('#statsGoalCal').textContent=state.goal;
+ let max=Math.max(state.goal,...totals.map(x=>x.cal),1),chart=$('#calorieChart');chart.innerHTML='';
+ totals.forEach(x=>{let col=document.createElement('div');col.className='barCol';let h=Math.max(3,Math.round(x.cal/max*100));col.innerHTML=`<div class="barValue">${x.cal?Math.round(x.cal):''}</div><div class="barTrack"><i style="height:${h}%"></i></div><small>${statsDays===7?new Date(x.k+'T12:00').toLocaleDateString('ko-KR',{weekday:'short'}):new Date(x.k+'T12:00').getDate()}</small>`;chart.appendChild(col)});
+ let goal=document.createElement('div');goal.className='calorieGoalLine';goal.style.bottom=`calc(20px + ${(state.goal/max)*148}px)`;goal.innerHTML='<span>목표</span>';chart.appendChild(goal);
  let counts={};state.meals.filter(m=>keys.includes(m.time?.slice(0,10))).flatMap(m=>m.foods||[]).forEach(f=>{let n=f.name||'음식';counts[n]=(counts[n]||0)+1});
  let top=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5);$('#topFoods').innerHTML=top.length?top.map(([n,c],i)=>`<div><span><b>${i+1}</b>${n}</span><em>${c}회</em></div>`).join(''):'<p class="muted">아직 충분한 식사 기록이 없어요.</p>';
 }
+function signedKg(v){return `${v>0?'+':''}${v.toFixed(1)} kg`}
 function renderWeights(){
- let arr=[...(state.weights||[])].sort((a,b)=>a.date.localeCompare(b.date)), recent=arr.slice(-10), box=$('#weightChart');box.innerHTML='';
- if(!recent.length) box.innerHTML='<p class="muted">첫 체중을 기록해보세요.</p>';
- else {let vals=recent.map(x=>+x.value),min=Math.min(...vals),max=Math.max(...vals),range=Math.max(1,max-min);recent.forEach(x=>{let pct=20+(+x.value-min)/range*70;let d=document.createElement('div');d.className='weightPoint';d.innerHTML=`<span>${x.date.slice(5).replace('-','.')}</span><div><i style="width:${pct}%"></i></div><b>${(+x.value).toFixed(1)}kg</b>`;box.appendChild(d)})}
- let change=arr.length>1?(+arr.at(-1).value-+arr[0].value):0;$('#weightChange').textContent=arr.length>1?`${change>0?'+':''}${change.toFixed(1)} kg`:'';
+ let arr=[...(state.weights||[])].sort((a,b)=>a.date.localeCompare(b.date)),recent=arr.slice(-12),box=$('#weightChart');box.innerHTML='';
+ let cur=arr.at(-1),first=arr[0],prev=arr.length>1?arr.at(-2):null;
+ $('#currentWeight').textContent=cur?`${(+cur.value).toFixed(1)} kg`:'-';
+ $('#fromFirstWeight').textContent=cur&&arr.length>1?signedKg(+cur.value-+first.value):'-';
+ $('#fromPrevWeight').textContent=cur&&prev?signedKg(+cur.value-+prev.value):'-';
+ $('#toGoalWeight').textContent=cur&&state.targetWeight?`${Math.abs(+cur.value-state.targetWeight).toFixed(1)} kg`:'-';
+ [['#fromFirstWeight',cur&&arr.length>1?+cur.value-+first.value:null],['#fromPrevWeight',cur&&prev?+cur.value-+prev.value:null]].forEach(([s,v])=>{let e=$(s);e.classList.remove('up','down');if(v!==null)e.classList.add(v<=0?'down':'up')});
+ let change=arr.length>1?(+arr.at(-1).value-+arr[0].value):0;$('#weightChange').textContent=arr.length>1?`첫 기록 대비 ${signedKg(change)}`:'';
+ if(!recent.length)box.innerHTML='<p class="muted">첫 체중을 기록해보세요.</p>';
+ else{
+  let vals=recent.map(x=>+x.value);if(state.targetWeight)vals.push(+state.targetWeight);let min=Math.min(...vals),max=Math.max(...vals);if(max-min<1){min-=.5;max+=.5}else{let pad=(max-min)*.18;min-=pad;max+=pad}
+  const W=560,H=220,L=42,R=14,T=18,B=34,pw=W-L-R,ph=H-T-B,x=i=>L+(recent.length===1?pw/2:i*pw/(recent.length-1)),y=v=>T+(max-v)/(max-min)*ph;
+  let grid='';for(let i=0;i<4;i++){let yy=T+i*ph/3,val=max-i*(max-min)/3;grid+=`<line class="gridLine" x1="${L}" y1="${yy}" x2="${W-R}" y2="${yy}"/><text class="axisText" x="${L-6}" y="${yy+3}" text-anchor="end">${val.toFixed(1)}</text>`}
+  let pts=recent.map((p,i)=>`${x(i)},${y(+p.value)}`).join(' '),area=recent.length>1?`<polygon class="trendArea" points="${L},${T+ph} ${pts} ${x(recent.length-1)},${T+ph}"/>`:'',goal='';
+  if(state.targetWeight){let gy=y(+state.targetWeight);goal=`<line class="goalWeightLine" x1="${L}" y1="${gy}" x2="${W-R}" y2="${gy}"/><text class="goalText" x="${W-R}" y="${gy-5}" text-anchor="end">목표 ${(+state.targetWeight).toFixed(1)}kg</text>`}
+  let dots=recent.map((p,i)=>`<circle class="point" cx="${x(i)}" cy="${y(+p.value)}" r="4"/><text class="axisText" x="${x(i)}" y="${H-10}" text-anchor="middle">${p.date.slice(5).replace('-','.')}</text><text class="axisText" x="${x(i)}" y="${y(+p.value)-9}" text-anchor="middle">${(+p.value).toFixed(1)}</text>`).join('');
+  box.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="최근 체중 변화 그래프">${grid}${area}${goal}${recent.length>1?`<polyline class="trendLine" points="${pts}"/>`:''}${dots}</svg>`;
+ }
  $('#weightList').innerHTML=arr.length?[...arr].reverse().map(x=>`<div><span>${x.date}</span><b>${(+x.value).toFixed(1)} kg</b><button data-date="${x.date}">×</button></div>`).join(''):'<p class="muted">저장된 체중이 없어요.</p>';
  $('#weightList').querySelectorAll('button').forEach(b=>b.onclick=()=>{state.weights=state.weights.filter(x=>x.date!==b.dataset.date);save();renderWeights()});
 }
@@ -166,6 +183,6 @@ document.querySelectorAll('.periodSwitch button').forEach(b=>b.onclick=()=>{stat
 $('#weightDate').value=localDateKey(new Date());
 $('#saveWeight').onclick=()=>{let date=$('#weightDate').value,val=+$ ('#weightValue').value;if(!date||!val)return alert('날짜와 체중을 입력해주세요.');let ex=state.weights.find(x=>x.date===date);if(ex)ex.value=val;else state.weights.push({date,value:val});save();$('#weightValue').value='';renderWeights()};
 $('#exportData').onclick=()=>{let blob=new Blob([JSON.stringify({...state,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`MealLogAI-backup-${localDateKey(new Date())}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)};
-$('#importData').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let data=JSON.parse(await f.text());if(!Array.isArray(data.meals))throw Error();if(confirm('현재 기록을 백업 파일의 내용으로 바꿀까요?')){state={goal:data.goal||1800,meals:data.meals||[],weights:data.weights||[]};save();alert('백업을 불러왔어요.')}}catch{alert('올바른 MealLogAI 백업 파일이 아니에요.')}e.target.value=''};
+$('#importData').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let data=JSON.parse(await f.text());if(!Array.isArray(data.meals))throw Error();if(confirm('현재 기록을 백업 파일의 내용으로 바꿀까요?')){state={goal:data.goal||1800,targetWeight:data.targetWeight||null,meals:data.meals||[],weights:data.weights||[]};save();alert('백업을 불러왔어요.')}}catch{alert('올바른 MealLogAI 백업 파일이 아니에요.')}e.target.value=''};
 
 if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js');render();
