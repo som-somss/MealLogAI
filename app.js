@@ -99,7 +99,151 @@ const FOOD_DB=[
 {name:'닭강정',aliases:[],calories:300,carbs:32,protein:16,fat:12,portions:[['1인분',200],['100g',100]]},
 {name:'후라이드치킨',aliases:['치킨','후라이드'],calories:290,carbs:10,protein:24,fat:18,portions:[['1조각',100],['100g',100]]},
 {name:'양념치킨',aliases:[],calories:310,carbs:24,protein:20,fat:15,portions:[['1조각',100],['100g',100]]}
-
+,
+{name:"참치김밥",aliases:["참치 김밥"],calories:190,carbs:27,protein:7.5,fat:6.5,portions:[["1줄", 250], ["반줄", 125], ["100g", 100]]},
+{name:"치즈김밥",aliases:["치즈 김밥"],calories:195,carbs:27,protein:7,fat:7,portions:[["1줄", 250], ["반줄", 125], ["100g", 100]]},
+{name:"야채김밥",aliases:["채소김밥", "야채 김밥"],calories:160,carbs:29,protein:5,fat:3.5,portions:[["1줄", 250], ["반줄", 125], ["100g", 100]]},
+{name:"소고기김밥",aliases:["불고기김밥", "소고기 김밥"],calories:205,carbs:27,protein:8.5,fat:7,portions:[["1줄", 250], ["반줄", 125], ["100g", 100]]},
+{name:"돈까스김밥",aliases:["돈가스김밥"],calories:220,carbs:29,protein:7.5,fat:8.5,portions:[["1줄", 250], ["반줄", 125], ["100g", 100]]},
+{name:"계란김밥",aliases:["달걀김밥"],calories:180,carbs:25,protein:7.5,fat:5.5,portions:[["1줄", 250], ["반줄", 125], ["100g", 100]]},
+{name:"묵은지김밥",aliases:["묵은지 김밥"],calories:165,carbs:28,protein:5,fat:4,portions:[["1줄", 250], ["반줄", 125], ["100g", 100]]},
+{name:"멸치김밥",aliases:["멸치 김밥"],calories:185,carbs:28,protein:7,fat:5,portions:[["1줄", 250], ["반줄", 125], ["100g", 100]]},
+{name:"충무김밥",aliases:["충무 김밥"],calories:170,carbs:34,protein:4,fat:2,portions:[["1인분", 300], ["100g", 100]]},
+{name:"꼬마김밥",aliases:["미니김밥"],calories:175,carbs:30,protein:5,fat:4,portions:[["5개", 200], ["1개", 40], ["100g", 100]]},
+{name:"김치볶음밥",aliases:["김치 볶음밥"],calories:175,carbs:28,protein:5,fat:5,portions:[["1인분", 400], ["100g", 100]]},
+{name:"새우볶음밥",aliases:["새우 볶음밥"],calories:180,carbs:27,protein:7,fat:5,portions:[["1인분", 400], ["100g", 100]]},
+{name:"계란볶음밥",aliases:["달걀볶음밥"],calories:185,carbs:27,protein:6.5,fat:6,portions:[["1인분", 400], ["100g", 100]]},
+{name:"소고기볶음밥",aliases:["쇠고기볶음밥"],calories:190,carbs:26,protein:8,fat:6,portions:[["1인분", 400], ["100g", 100]]},
+{name:"오므라이스",aliases:["오믈렛라이스"],calories:170,carbs:25,protein:6,fat:5,portions:[["1인분", 450], ["100g", 100]]},
+{name:"카레라이스",aliases:["카레밥", "카레"],calories:150,carbs:24,protein:5,fat:4,portions:[["1인분", 500], ["100g", 100]]},
+{name:"알밥",aliases:[],calories:165,carbs:28,protein:6,fat:3.5,portions:[["1그릇", 400], ["100g", 100]]},
+{name:"돌솥비빔밥",aliases:["돌솥 비빔밥"],calories:155,carbs:25,protein:5,fat:4,portions:[["1그릇", 450], ["100g", 100]]},
+{name:"참치비빔밥",aliases:["참치 비빔밥"],calories:145,carbs:23,protein:7,fat:3.5,portions:[["1그릇", 450], ["100g", 100]]},
+{name:"회덮밥",aliases:["회 덮밥"],calories:135,carbs:22,protein:7,fat:2.5,portions:[["1그릇", 500], ["100g", 100]]},
+{name:"김치국",aliases:[],calories:35,carbs:5,protein:2,fat:1,portions:[["1그릇", 300], ["100g", 100]]},
+{name:"콩나물국",aliases:[],calories:30,carbs:4,protein:2.5,fat:0.7,portions:[["1그릇", 300], ["100g", 100]]},
+{name:"북엇국",aliases:["북어국", "황태국"],calories:45,carbs:3,protein:6,fat:1,portions:[["1그릇", 300], ["100g", 100]]},
+{name:"떡국",aliases:[],calories:105,carbs:20,protein:4,fat:1.5,portions:[["1그릇", 500], ["100g", 100]]},
+{name:"만둣국",aliases:["만두국"],calories:110,carbs:15,protein:6,fat:3,portions:[["1그릇", 500], ["100g", 100]]},
+{name:"소고기무국",aliases:["무국"],calories:50,carbs:3,protein:6,fat:1.5,portions:[["1그릇", 300], ["100g", 100]]},
+{name:"시래기국",aliases:["시래깃국"],calories:40,carbs:5,protein:3,fat:1,portions:[["1그릇", 300], ["100g", 100]]},
+{name:"김치찜",aliases:[],calories:115,carbs:7,protein:9,fat:6,portions:[["1인분", 300], ["100g", 100]]},
+{name:"동태찌개",aliases:["동태탕"],calories:70,carbs:5,protein:9,fat:2,portions:[["1그릇", 400], ["100g", 100]]},
+{name:"참치김치찌개",aliases:[],calories:85,carbs:5,protein:8,fat:4,portions:[["1그릇", 350], ["100g", 100]]},
+{name:"돼지고기김치찌개",aliases:[],calories:95,carbs:5,protein:8,fat:5,portions:[["1그릇", 350], ["100g", 100]]},
+{name:"고추장찌개",aliases:[],calories:90,carbs:7,protein:7,fat:4,portions:[["1그릇", 350], ["100g", 100]]},
+{name:"갈비찜",aliases:["소갈비찜"],calories:225,carbs:10,protein:18,fat:13,portions:[["1인분", 250], ["100g", 100]]},
+{name:"돼지갈비",aliases:["돼지갈비구이"],calories:260,carbs:10,protein:20,fat:16,portions:[["1인분", 200], ["100g", 100]]},
+{name:"LA갈비",aliases:["엘에이갈비"],calories:270,carbs:9,protein:21,fat:17,portions:[["1인분", 200], ["100g", 100]]},
+{name:"소갈비구이",aliases:[],calories:285,carbs:4,protein:24,fat:20,portions:[["1인분", 180], ["100g", 100]]},
+{name:"소고기장조림",aliases:["장조림"],calories:180,carbs:7,protein:24,fat:6,portions:[["작은 접시", 80], ["100g", 100]]},
+{name:"닭꼬치",aliases:[],calories:190,carbs:12,protein:18,fat:8,portions:[["1꼬치", 100], ["100g", 100]]},
+{name:"닭발",aliases:["매운닭발"],calories:185,carbs:12,protein:20,fat:6,portions:[["1인분", 200], ["100g", 100]]},
+{name:"훈제오리",aliases:["오리훈제"],calories:310,carbs:2,protein:19,fat:25,portions:[["1인분", 150], ["100g", 100]]},
+{name:"오리주물럭",aliases:[],calories:240,carbs:9,protein:18,fat:15,portions:[["1인분", 200], ["100g", 100]]},
+{name:"연어회",aliases:["생연어"],calories:205,carbs:0,protein:20,fat:13,portions:[["10점", 150], ["100g", 100]]},
+{name:"새우구이",aliases:["구운새우"],calories:110,carbs:1,protein:22,fat:2,portions:[["10마리", 150], ["100g", 100]]},
+{name:"새우튀김",aliases:[],calories:240,carbs:20,protein:12,fat:12,portions:[["1개", 35], ["5개", 175], ["100g", 100]]},
+{name:"오징어숙회",aliases:["오징어회"],calories:90,carbs:3,protein:16,fat:1.5,portions:[["1접시", 150], ["100g", 100]]},
+{name:"물회",aliases:[],calories:75,carbs:10,protein:7,fat:1.5,portions:[["1그릇", 500], ["100g", 100]]},
+{name:"초밥",aliases:["스시"],calories:155,carbs:27,protein:6,fat:2.5,portions:[["10개", 300], ["1개", 30], ["100g", 100]]},
+{name:"연어초밥",aliases:[],calories:165,carbs:25,protein:8,fat:4,portions:[["10개", 300], ["1개", 30], ["100g", 100]]},
+{name:"광어초밥",aliases:[],calories:150,carbs:26,protein:7,fat:2,portions:[["10개", 300], ["1개", 30], ["100g", 100]]},
+{name:"유부초밥",aliases:[],calories:180,carbs:30,protein:6,fat:4,portions:[["5개", 200], ["1개", 40], ["100g", 100]]},
+{name:"비빔국수",aliases:[],calories:125,carbs:24,protein:4,fat:2,portions:[["1그릇", 500], ["100g", 100]]},
+{name:"쫄면",aliases:[],calories:135,carbs:27,protein:4,fat:1.5,portions:[["1그릇", 500], ["100g", 100]]},
+{name:"라볶이",aliases:[],calories:175,carbs:33,protein:4,fat:3,portions:[["1인분", 350], ["100g", 100]]},
+{name:"로제떡볶이",aliases:["로제 떡볶이"],calories:220,carbs:30,protein:5,fat:9,portions:[["1인분", 300], ["100g", 100]]},
+{name:"짜파게티",aliases:["짜장라면"],calories:155,carbs:23,protein:4,fat:5,portions:[["1봉 조리 후", 500], ["100g", 100]]},
+{name:"비빔면",aliases:[],calories:150,carbs:27,protein:4,fat:3,portions:[["1봉 조리 후", 450], ["100g", 100]]},
+{name:"컵라면",aliases:[],calories:145,carbs:21,protein:4,fat:5,portions:[["1개 조리 후", 350], ["100g", 100]]},
+{name:"김말이튀김",aliases:["김말이"],calories:245,carbs:31,protein:5,fat:11,portions:[["1개", 35], ["5개", 175], ["100g", 100]]},
+{name:"고구마튀김",aliases:[],calories:250,carbs:34,protein:3,fat:11,portions:[["1개", 60], ["100g", 100]]},
+{name:"야채튀김",aliases:["채소튀김"],calories:260,carbs:28,protein:4,fat:14,portions:[["1개", 80], ["100g", 100]]},
+{name:"핫도그",aliases:["콘도그"],calories:280,carbs:28,protein:10,fat:14,portions:[["1개", 120], ["100g", 100]]},
+{name:"토스트",aliases:["길거리토스트"],calories:230,carbs:28,protein:8,fat:10,portions:[["1개", 180], ["100g", 100]]},
+{name:"햄버거",aliases:["버거"],calories:250,carbs:25,protein:13,fat:11,portions:[["1개", 220], ["100g", 100]]},
+{name:"치즈버거",aliases:[],calories:270,carbs:24,protein:15,fat:13,portions:[["1개", 220], ["100g", 100]]},
+{name:"불고기버거",aliases:[],calories:245,carbs:27,protein:12,fat:10,portions:[["1개", 220], ["100g", 100]]},
+{name:"감자튀김",aliases:["프렌치프라이"],calories:310,carbs:41,protein:3.5,fat:15,portions:[["소", 80], ["중", 120], ["100g", 100]]},
+{name:"피자",aliases:[],calories:265,carbs:33,protein:11,fat:10,portions:[["1조각", 120], ["2조각", 240], ["100g", 100]]},
+{name:"페퍼로니피자",aliases:[],calories:290,carbs:32,protein:13,fat:13,portions:[["1조각", 120], ["100g", 100]]},
+{name:"고구마피자",aliases:[],calories:280,carbs:36,protein:9,fat:11,portions:[["1조각", 120], ["100g", 100]]},
+{name:"샌드위치",aliases:[],calories:220,carbs:25,protein:10,fat:9,portions:[["1개", 180], ["100g", 100]]},
+{name:"에그샌드위치",aliases:["계란샌드위치"],calories:235,carbs:23,protein:11,fat:11,portions:[["1개", 180], ["100g", 100]]},
+{name:"참치샌드위치",aliases:[],calories:225,carbs:22,protein:13,fat:9,portions:[["1개", 180], ["100g", 100]]},
+{name:"닭가슴살샐러드",aliases:["치킨샐러드"],calories:115,carbs:7,protein:13,fat:4,portions:[["1팩", 250], ["100g", 100]]},
+{name:"연어샐러드",aliases:[],calories:125,carbs:6,protein:10,fat:7,portions:[["1팩", 250], ["100g", 100]]},
+{name:"시저샐러드",aliases:[],calories:145,carbs:8,protein:8,fat:9,portions:[["1팩", 250], ["100g", 100]]},
+{name:"마카로니샐러드",aliases:[],calories:180,carbs:20,protein:4,fat:9,portions:[["작은 접시", 100], ["100g", 100]]},
+{name:"고구마샐러드",aliases:[],calories:160,carbs:25,protein:2,fat:6,portions:[["작은 접시", 100], ["100g", 100]]},
+{name:"단호박샐러드",aliases:[],calories:145,carbs:20,protein:3,fat:6,portions:[["작은 접시", 100], ["100g", 100]]},
+{name:"김자반",aliases:["김가루"],calories:430,carbs:35,protein:20,fat:25,portions:[["1회", 10], ["20g", 20], ["100g", 100]]},
+{name:"멸치볶음",aliases:[],calories:300,carbs:20,protein:35,fat:9,portions:[["작은 접시", 30], ["100g", 100]]},
+{name:"진미채볶음",aliases:["오징어채볶음"],calories:280,carbs:28,protein:30,fat:6,portions:[["작은 접시", 40], ["100g", 100]]},
+{name:"콩자반",aliases:[],calories:210,carbs:30,protein:12,fat:5,portions:[["작은 접시", 40], ["100g", 100]]},
+{name:"시금치나물",aliases:[],calories:55,carbs:5,protein:4,fat:2,portions:[["작은 접시", 50], ["100g", 100]]},
+{name:"콩나물무침",aliases:[],calories:45,carbs:5,protein:4,fat:1.5,portions:[["작은 접시", 50], ["100g", 100]]},
+{name:"무생채",aliases:[],calories:45,carbs:8,protein:1.5,fat:0.8,portions:[["작은 접시", 50], ["100g", 100]]},
+{name:"감자조림",aliases:[],calories:120,carbs:20,protein:2.5,fat:3.5,portions:[["작은 접시", 80], ["100g", 100]]},
+{name:"계란말이",aliases:["달걀말이"],calories:160,carbs:3,protein:11,fat:11,portions:[["4조각", 100], ["100g", 100]]},
+{name:"계란찜",aliases:["달걀찜"],calories:110,carbs:3,protein:10,fat:6,portions:[["1그릇", 200], ["100g", 100]]},
+{name:"두부조림",aliases:[],calories:120,carbs:6,protein:9,fat:7,portions:[["작은 접시", 120], ["100g", 100]]},
+{name:"두부김치",aliases:[],calories:155,carbs:8,protein:10,fat:9,portions:[["1접시", 250], ["100g", 100]]},
+{name:"떡갈비",aliases:[],calories:230,carbs:12,protein:16,fat:13,portions:[["1장", 100], ["100g", 100]]},
+{name:"동그랑땡",aliases:[],calories:220,carbs:14,protein:14,fat:12,portions:[["5개", 125], ["1개", 25], ["100g", 100]]},
+{name:"김치만두",aliases:[],calories:190,carbs:27,protein:7,fat:6,portions:[["1개", 30], ["5개", 150], ["100g", 100]]},
+{name:"군만두",aliases:[],calories:250,carbs:29,protein:8,fat:11,portions:[["1개", 30], ["5개", 150], ["100g", 100]]},
+{name:"찐만두",aliases:[],calories:195,carbs:26,protein:8,fat:7,portions:[["1개", 30], ["5개", 150], ["100g", 100]]},
+{name:"마라탕",aliases:[],calories:105,carbs:8,protein:8,fat:5,portions:[["1그릇", 700], ["100g", 100]]},
+{name:"마라샹궈",aliases:[],calories:210,carbs:12,protein:12,fat:13,portions:[["1인분", 400], ["100g", 100]]},
+{name:"쌀국수",aliases:["베트남쌀국수"],calories:85,carbs:14,protein:5,fat:1.5,portions:[["1그릇", 650], ["100g", 100]]},
+{name:"팟타이",aliases:[],calories:180,carbs:27,protein:7,fat:5,portions:[["1인분", 400], ["100g", 100]]},
+{name:"돈코츠라멘",aliases:["일본라멘", "라멘"],calories:135,carbs:15,protein:7,fat:5,portions:[["1그릇", 650], ["100g", 100]]},
+{name:"메밀소바",aliases:["냉모밀", "소바"],calories:100,carbs:19,protein:4,fat:1,portions:[["1그릇", 500], ["100g", 100]]},
+{name:"규동",aliases:["소고기덮밥"],calories:170,carbs:25,protein:8,fat:4,portions:[["1그릇", 450], ["100g", 100]]},
+{name:"가츠동",aliases:["돈까스덮밥"],calories:205,carbs:26,protein:9,fat:7,portions:[["1그릇", 450], ["100g", 100]]},
+{name:"연어덮밥",aliases:["사케동"],calories:175,carbs:23,protein:9,fat:5,portions:[["1그릇", 450], ["100g", 100]]},
+{name:"크림파스타",aliases:[],calories:190,carbs:22,protein:6,fat:9,portions:[["1접시", 450], ["100g", 100]]},
+{name:"토마토파스타",aliases:[],calories:135,carbs:22,protein:5,fat:3,portions:[["1접시", 450], ["100g", 100]]},
+{name:"알리오올리오",aliases:[],calories:210,carbs:25,protein:5,fat:10,portions:[["1접시", 400], ["100g", 100]]},
+{name:"로제파스타",aliases:[],calories:175,carbs:23,protein:6,fat:7,portions:[["1접시", 450], ["100g", 100]]},
+{name:"리조또",aliases:[],calories:170,carbs:24,protein:6,fat:6,portions:[["1접시", 400], ["100g", 100]]},
+{name:"콘푸로스트",aliases:["콘플레이크", "시리얼"],calories:370,carbs:84,protein:7,fat:1,portions:[["1회", 30], ["100g", 100]]},
+{name:"그래놀라",aliases:[],calories:450,carbs:64,protein:10,fat:17,portions:[["1회", 40], ["100g", 100]]},
+{name:"프로틴쉐이크",aliases:["단백질쉐이크"],calories:90,carbs:5,protein:15,fat:1.5,portions:[["1잔", 250], ["100ml", 100]]},
+{name:"딸기우유",aliases:[],calories:75,carbs:12,protein:3,fat:2,portions:[["1팩", 200], ["100ml", 100]]},
+{name:"초코우유",aliases:["초콜릿우유"],calories:80,carbs:12,protein:3.2,fat:2.3,portions:[["1팩", 200], ["100ml", 100]]},
+{name:"바나나우유",aliases:[],calories:78,carbs:12,protein:3,fat:2.2,portions:[["1병", 240], ["100ml", 100]]},
+{name:"아이스카페라떼",aliases:["아이스라떼"],calories:50,carbs:5,protein:3,fat:2,portions:[["1잔", 400], ["100ml", 100]]},
+{name:"바닐라라떼",aliases:[],calories:85,carbs:12,protein:3,fat:3,portions:[["1잔", 400], ["100ml", 100]]},
+{name:"카페모카",aliases:["모카"],calories:95,carbs:14,protein:3,fat:3,portions:[["1잔", 400], ["100ml", 100]]},
+{name:"카라멜마끼아또",aliases:["카라멜마키아토"],calories:105,carbs:16,protein:3,fat:3.5,portions:[["1잔", 400], ["100ml", 100]]},
+{name:"녹차라떼",aliases:["말차라떼"],calories:80,carbs:12,protein:3,fat:2.5,portions:[["1잔", 400], ["100ml", 100]]},
+{name:"밀크티",aliases:[],calories:75,carbs:12,protein:2,fat:2,portions:[["1잔", 400], ["100ml", 100]]},
+{name:"오렌지주스",aliases:["오렌지 주스"],calories:45,carbs:10.5,protein:0.7,fat:0.2,portions:[["1잔", 250], ["100ml", 100]]},
+{name:"사과주스",aliases:["사과 주스"],calories:46,carbs:11,protein:0.1,fat:0.1,portions:[["1잔", 250], ["100ml", 100]]},
+{name:"이온음료",aliases:["스포츠음료"],calories:25,carbs:6,protein:0,fat:0,portions:[["1병", 500], ["100ml", 100]]},
+{name:"에너지드링크",aliases:["에너지음료"],calories:45,carbs:11,protein:0,fat:0,portions:[["1캔", 250], ["100ml", 100]]},
+{name:"맥주",aliases:[],calories:43,carbs:3.6,protein:0.5,fat:0,portions:[["1캔", 355], ["500ml", 500], ["100ml", 100]]},
+{name:"소주",aliases:[],calories:127,carbs:0,protein:0,fat:0,portions:[["1잔", 50], ["1병", 360], ["100ml", 100]]},
+{name:"와인",aliases:["레드와인", "화이트와인"],calories:83,carbs:2.6,protein:0.1,fat:0,portions:[["1잔", 150], ["100ml", 100]]},
+{name:"초코케이크",aliases:["초콜릿케이크"],calories:370,carbs:50,protein:5,fat:17,portions:[["1조각", 100], ["100g", 100]]},
+{name:"치즈케이크",aliases:[],calories:320,carbs:26,protein:6,fat:22,portions:[["1조각", 100], ["100g", 100]]},
+{name:"생크림케이크",aliases:[],calories:300,carbs:40,protein:4,fat:14,portions:[["1조각", 100], ["100g", 100]]},
+{name:"마카롱",aliases:[],calories:430,carbs:58,protein:6,fat:19,portions:[["1개", 25], ["100g", 100]]},
+{name:"도넛",aliases:["도너츠"],calories:400,carbs:50,protein:5,fat:20,portions:[["1개", 70], ["100g", 100]]},
+{name:"붕어빵",aliases:[],calories:230,carbs:43,protein:5,fat:4,portions:[["1개", 80], ["100g", 100]]},
+{name:"호떡",aliases:[],calories:320,carbs:52,protein:5,fat:11,portions:[["1개", 100], ["100g", 100]]},
+{name:"약과",aliases:[],calories:430,carbs:65,protein:4,fat:17,portions:[["1개", 30], ["100g", 100]]},
+{name:"인절미",aliases:[],calories:220,carbs:47,protein:5,fat:1.5,portions:[["5개", 100], ["100g", 100]]},
+{name:"송편",aliases:[],calories:220,carbs:45,protein:4,fat:3,portions:[["5개", 100], ["100g", 100]]},
+{name:"팥빙수",aliases:["빙수"],calories:145,carbs:28,protein:4,fat:2,portions:[["1그릇", 500], ["100g", 100]]},
+{name:"아이스크림",aliases:[],calories:210,carbs:24,protein:3.5,fat:11,portions:[["1스쿱", 70], ["100g", 100]]},
+{name:"초콜릿",aliases:[],calories:535,carbs:59,protein:8,fat:30,portions:[["1회", 30], ["100g", 100]]},
+{name:"감자칩",aliases:["포테이토칩"],calories:535,carbs:53,protein:6,fat:34,portions:[["1봉", 60], ["30g", 30], ["100g", 100]]},
+{name:"새우깡",aliases:[],calories:490,carbs:65,protein:6,fat:23,portions:[["1봉", 90], ["30g", 30], ["100g", 100]]},
+{name:"팝콘",aliases:[],calories:390,carbs:65,protein:12,fat:10,portions:[["1컵", 25], ["100g", 100]]}
 ];
 
 let selectedDate=localDateKey(new Date()),calendarMonth=new Date(selectedDate+"T12:00:00");
@@ -136,7 +280,7 @@ $('#dateBtn').onclick=()=>{calendarMonth=new Date(selectedDate+"T12:00:00");$('#
 $('#todayBtn').onclick=()=>{selectedDate=localDateKey(new Date());calendarMonth=new Date();$('#calendarPanel').hidden=true;render()};
 $('#prevMonth').onclick=()=>{calendarMonth.setMonth(calendarMonth.getMonth()-1);renderCalendar()};$('#nextMonth').onclick=()=>{calendarMonth.setMonth(calendarMonth.getMonth()+1);renderCalendar()};
 function renderCalendar(){let y=calendarMonth.getFullYear(),m=calendarMonth.getMonth();$('#monthLabel').textContent=`${y}년 ${m+1}월`;let grid=$('#calendarGrid');grid.innerHTML='';let first=new Date(y,m,1),start=new Date(y,m,1-first.getDay());let mealDays=new Set(state.meals.filter(x=>x.time).map(x=>x.time.slice(0,10)));for(let i=0;i<42;i++){let d=new Date(start);d.setDate(start.getDate()+i);let k=localDateKey(d),b=document.createElement('button');b.type='button';b.className='day';b.textContent=d.getDate();if(d.getMonth()!=m)b.classList.add('other');if(k===selectedDate)b.classList.add('selected');if(k===localDateKey(new Date()))b.classList.add('today');if(mealDays.has(k))b.classList.add('hasMeal');b.onclick=()=>{selectedDate=k;calendarMonth=new Date(k+"T12:00:00");$('#calendarPanel').hidden=true;render()};grid.appendChild(b)}}
-function norm(s){return(s||'').toLowerCase().replace(/\s/g,'')}function findFoods(q){q=norm(q);if(!q)return[];return FOOD_DB.filter(f=>norm(f.name).includes(q)||(f.aliases||[]).some(a=>norm(a).includes(q))).slice(0,8)}
+function norm(s){return(s||'').toLowerCase().replace(/\s/g,'')}function findFoods(q){q=norm(q);if(!q)return[];return FOOD_DB.filter(f=>norm(f.name).includes(q)||(f.aliases||[]).some(a=>norm(a).includes(q))).slice(0,20)}
 function calcRow(row){const idx=+row.dataset.dbIndex;if(!Number.isInteger(idx)||!FOOD_DB[idx])return;const f=FOOD_DB[idx],g=Math.max(0,+row.querySelector('.grams').value||0),r=g/100;row.querySelector('.calories').value=Math.round(f.calories*r);row.querySelector('.carbs').value=(f.carbs*r).toFixed(1);row.querySelector('.protein').value=(f.protein*r).toFixed(1);row.querySelector('.fat').value=(f.fat*r).toFixed(1)}
 function chooseFood(row,f){const idx=FOOD_DB.indexOf(f);row.dataset.dbIndex=idx;row.querySelector('.name').value=f.name;const p=row.querySelector('.portion');p.innerHTML='';(f.portions||[['100g',100]]).forEach(([n,g])=>{let o=document.createElement('option');o.value=g;o.textContent=`${n} (${g}g)`;p.appendChild(o)});p.hidden=false;row.querySelector('.dbBadge').hidden=false;row.querySelector('.grams').value=(f.portions?.[0]?.[1]||100);row.querySelector('.suggestions').hidden=true;calcRow(row)}
 function showSuggestions(row,q){let box=row.querySelector('.suggestions'),ms=findFoods(q);box.innerHTML='';if(!q||!ms.length){box.hidden=true;return}ms.forEach(f=>{let b=document.createElement('button');b.type='button';b.className='suggestion';b.innerHTML=`<b>${f.name}</b><small>100g 기준 ${f.calories} kcal · 탄 ${f.carbs}g · 단 ${f.protein}g · 지 ${f.fat}g</small>`;b.onclick=()=>chooseFood(row,f);box.appendChild(b)});box.hidden=false}
@@ -146,6 +290,10 @@ function setPhotoUI(){let has=!!photoData;$('#preview').hidden=!has;$('#photoTex
 function openNewMeal(){editingMealId=null;photoData='';$('#dialogTitle').textContent='음식 기록';$('#saveTop').textContent='저장';$('#photo').value='';$('#mealType').value='아침';$('#mealTime').value=defaultTimeForDate(selectedDate);$('#foods').innerHTML='';addFood();let ni=document.querySelector('.foodRow .name');if(ni)ni.placeholder='아침 식사로 무엇을 드셨나요?';$('#memo').value='';$('#status').textContent='';setPhotoUI();$('#mealDialog').showModal()}
 function openMealEditor(m){editingMealId=m.id;photoData=m.photo||'';$('#dialogTitle').textContent='식사 기록 수정';$('#saveTop').textContent='수정 저장';$('#photo').value='';$('#mealType').value=m.type||'아침';$('#mealTime').value=m.time||defaultTimeForDate(selectedDate);$('#foods').innerHTML='';(m.foods&&m.foods.length?m.foods:[{}]).forEach(addFood);$('#memo').value=m.memo||'';$('#status').textContent='사진과 식사 내용을 수정할 수 있어요.';setPhotoUI();$('#mealDialog').showModal()}
 $('#addBtn').onclick=openNewMeal;
+$('#mealDialog').addEventListener('click',e=>{
+  if(e.target===$('#mealDialog')){ editingMealId=null; photoData=''; $('#mealDialog').close(); }
+});
+
 function setEntryMode(mode){
   document.querySelectorAll('.entryMode').forEach(b=>b.classList.remove('active'));
   if(mode==='search'){
@@ -163,7 +311,12 @@ function setEntryMode(mode){
 $('#modeSearch').onclick=()=>setEntryMode('search');
 $('#modePhoto').onclick=()=>setEntryMode('photo');
 $('#modeAI').onclick=()=>setEntryMode('ai');$('#editSteps').onclick=setSteps;document.querySelectorAll('[data-water]').forEach(b=>b.onclick=()=>addWater(+b.dataset.water));$('#undoWater').onclick=undoWater;
-$('#cancelBtn').onclick=()=>{editingMealId=null;$('#mealDialog').close()};$('#addFood').onclick=()=>addFood();$('#removePhoto').onclick=()=>{photoData='';$('#photo').value='';setPhotoUI();$('#status').textContent='사진을 삭제했어요. 저장하면 기록에서 제거돼요.'};
+$('#cancelBtn').onclick=e=>{
+  e.preventDefault(); e.stopPropagation();
+  editingMealId=null; photoData='';
+  document.querySelectorAll('.suggestions').forEach(x=>x.hidden=true);
+  $('#mealDialog').close();
+};$('#addFood').onclick=()=>addFood();$('#removePhoto').onclick=()=>{photoData='';$('#photo').value='';setPhotoUI();$('#status').textContent='사진을 삭제했어요. 저장하면 기록에서 제거돼요.'};
 $('#photo').onchange=async e=>{let f=e.target.files[0];if(!f)return;photoData=await resize(f,900,.72);setPhotoUI()};
 function resize(file,max,q){return new Promise(r=>{let im=new Image(),u=URL.createObjectURL(file);im.onload=()=>{let s=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);r(c.toDataURL('image/jpeg',q))};im.src=u})}
 $('#analyzeBtn').onclick=async()=>{let b=$('#analyzeBtn');b.disabled=true;$('#status').textContent='AI가 음식을 분석하고 있어요…';try{let res=await fetch('/api/analyze',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({image:photoData})}),data=await res.json();if(!res.ok)throw Error(data.error||'분석 실패');$('#foods').innerHTML='';(data.foods||[]).forEach(addFood);if(!(data.foods||[]).length)addFood();$('#status').textContent='AI 추정 결과예요. 음식과 양을 확인한 뒤 저장하세요.'}catch(e){$('#status').textContent=`AI 분석을 사용할 수 없어요: ${e.message} · 음식 검색은 계속 사용할 수 있어요.`}finally{b.disabled=false}};

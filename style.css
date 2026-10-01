@@ -106,3 +106,11 @@ h1{font-weight:800;letter-spacing:-1.25px}
  .entryModes{gap:7px}.entryMode{padding:10px 3px}.entryMode span{font-size:18px}
  .foodNameWrap .name{font-size:14px}
 }
+
+/* v6: reliable mobile meal-dialog controls */
+#mealDialog .dialogHead{
+  position:sticky; top:-18px; z-index:80;
+  background:#fffaf7; padding:18px 2px 12px; margin-top:-18px;
+}
+#mealDialog .dialogHead button{position:relative;z-index:81;pointer-events:auto;min-width:52px;min-height:44px}
+#mealDialog form{overscroll-behavior:contain}
