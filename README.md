@@ -1,18 +1,11 @@
-# MealLog AI PWA
+# MealLogAI v6.8
 
-아이폰 Safari에서 홈 화면에 추가해 사용하는 개인용 식사 기록 PWA입니다.
+v6.7 안정판을 기준으로 날짜 문구, 식약처 공공 영양DB 검색, 바코드 제품 조회 기능을 추가했습니다.
 
-## Vercel 배포 (Windows)
-1. 이 폴더를 GitHub 저장소에 업로드합니다.
-2. Vercel에서 Add New > Project > 해당 GitHub 저장소 Import.
-3. Framework Preset은 Other, 나머지는 기본값으로 Deploy.
-4. 배포가 끝나면 `https://...vercel.app` 주소가 발급됩니다.
-5. AI 분석을 쓰려면 Vercel 프로젝트 > Settings > Environment Variables에서 `OPENAI_API_KEY`를 Secret으로 추가한 뒤 Redeploy 합니다.
-6. iPhone Safari에서 발급 주소를 열고 공유 > 홈 화면에 추가.
+## 배포 전 1회 설정
+Vercel 프로젝트 Settings → Environment Variables에 `FOOD_API_KEY`를 추가하고 공공데이터포털에서 발급받은 일반 인증키를 값으로 저장하세요. 인증키를 GitHub 파일에 직접 넣지 마세요.
 
-## 주의
-사진 기반 칼로리/중량은 AI 추정치입니다. 저장 전 사용자가 수정할 수 있습니다.
-기록 및 사진은 현재 브라우저 localStorage에 저장되므로 Safari 사이트 데이터 삭제 시 함께 삭제될 수 있습니다.
+환경변수 저장 후 새 배포가 필요합니다.
 
-## v6.5
-PC/iPhone 음식 기록 모달 레이아웃, 취소 버튼, 사진 미리보기, 서비스워커 캐시를 안정화했습니다.
+## 바코드
+가능한 브라우저에서는 후면 카메라로 EAN/UPC 바코드를 읽습니다. 자동 스캔을 지원하지 않는 iPhone/브라우저에서는 바코드 아래 숫자를 직접 입력할 수 있습니다. 제품 조회는 Open Food Facts를 사용하며, 등록되지 않은 제품은 제품명으로 식약처 공공DB를 검색해 기록할 수 있습니다.

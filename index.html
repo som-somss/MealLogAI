@@ -5,7 +5,7 @@
 <meta name="theme-color" content="#fff8f4"><meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="MealLog AI">
 <link rel="apple-touch-icon" href="/icons/icon-192.png"><link rel="manifest" href="/manifest.webmanifest">
-<link rel="stylesheet" href="/style.css?v=66"><title>MealLog AI</title>
+<link rel="stylesheet" href="/style.css?v=68"><title>MealLog AI</title>
 </head><body>
 <main>
 <header><div><small id="todayLabel"></small><h1>오늘 뭐 먹었지?</h1></div><div class="headerActions"><button id="accountBtn" class="accountBtn" type="button">로그인</button><button id="settingsBtn" class="icon">⚙︎</button></div></header>
@@ -54,7 +54,7 @@
 <section class="pageIntro"><small>나의 식사 흐름</small><h2>식사 통계</h2><p>최근 기록을 한눈에 확인해요.</p></section>
 <div class="periodSwitch"><button data-days="7" class="active">7일</button><button data-days="30">30일</button></div>
 <section class="statCards statCards5">
-<div class="statCard"><small>하루 평균</small><b id="avgCalories">0 kcal</b></div>
+<div class="statCard"><small>기록일 평균</small><b id="avgCalories">0 kcal</b></div>
 <div class="statCard"><small>기록한 날</small><b id="loggedDays">0일</b></div>
 <div class="statCard"><small>평균 탄수화물</small><b id="avgCarbs">0g</b></div>
 <div class="statCard"><small>평균 단백질</small><b id="avgProtein">0g</b></div>
@@ -101,7 +101,9 @@
 <label class="photo"><input id="photo" type="file" accept="image/*"><div class="photoWrap"><img id="preview" hidden></div><span id="photoText"><b>📷</b><br>오늘 먹은 음식 사진<br><small>사진 촬영 또는 앨범에서 선택</small></span></label><div class="photoActions"><label for="photo" class="photoChange">📷 사진 추가·변경</label><button type="button" id="removePhoto" class="photoRemove" hidden>사진 삭제</button></div>
 <button type="button" id="analyzeBtn" class="ai" disabled>AI 음식 분석 <span>선택</span></button><p class="aiNote">사진 저장은 무료예요. AI 버튼을 누를 때만 API를 사용해요.</p><p id="status" class="status"></p>
 <div class="grid"><label>식사 종류<select id="mealType"><option>아침</option><option>점심</option><option>저녁</option><option>간식</option></select></label><label>먹은 시간<input id="mealTime" type="datetime-local"></label></div>
-<div class="dbHelp"><b>음식 검색</b><span>음식을 검색하고 먹은 양을 선택하면 영양정보가 자동으로 계산돼요.</span></div>
+<div class="dbHelp"><b>음식 검색</b><span>일반 음식과 마트·편의점 제품을 검색할 수 있어요.</span></div>
+<div class="foodTools"><button type="button" id="barcodeBtn" class="foodToolBtn">▣ 바코드 스캔</button><span id="publicDbState" class="publicDbState">식약처 공공DB 연동</span></div>
+<div id="barcodePanel" class="barcodePanel" hidden><div class="barcodeHead"><b>바코드로 제품 찾기</b><button type="button" id="barcodeClose">닫기</button></div><video id="barcodeVideo" playsinline muted hidden></video><p id="barcodeStatus" class="hint">카메라로 바코드를 비추거나 번호를 직접 입력하세요.</p><div class="barcodeManual"><input id="barcodeInput" inputmode="numeric" autocomplete="off" placeholder="예: 8801234567890"><button type="button" id="barcodeLookup">제품 찾기</button></div></div>
 <div id="foods"></div><button type="button" id="addFood" class="secondary">＋ 음식 하나 더 추가</button>
 <label>메모<textarea id="memo" rows="2" placeholder="오늘 식사는 어땠나요?"></textarea></label>
 <div class="mobileBottomSpace"></div>
@@ -117,6 +119,6 @@
 <div class="backupBtns"><button type="button" id="exportData" class="secondary">백업 파일 저장</button><label class="secondary importBtn">백업 불러오기<input id="importData" type="file" accept="application/json"></label></div>
 <div class="cloudReady"><b>계정 · 클라우드 동기화</b><span id="cloudBadge">연결 준비</span><p id="cloudStatusText">로그인하면 식사·체중·활동 기록을 계정에 동기화합니다.</p><button type="button" id="cloudAccountBtn" class="secondary">로그인 / 계정 관리</button></div></form></dialog>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase-config.js?v=66"></script>
-<script src="/app.js?v=66"></script>
-<script src="/cloud.js?v=66"></script></body></html>
+<script src="/supabase-config.js?v=68"></script>
+<script src="/app.js?v=68"></script>
+<script src="/cloud.js?v=68"></script></body></html>
