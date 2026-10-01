@@ -11,8 +11,8 @@ Vercel 프로젝트 Settings → Environment Variables에 `FOOD_API_KEY`를 추�
 가능한 브라우저에서는 후면 카메라로 EAN/UPC 바코드를 읽습니다. 자동 스캔을 지원하지 않는 iPhone/브라우저에서는 바코드 아래 숫자를 직접 입력할 수 있습니다. 제품 조회는 Open Food Facts를 사용하며, 등록되지 않은 제품은 제품명으로 식약처 공공DB를 검색해 기록할 수 있습니다.
 
 
-## v6.8.2
+## v6.8.3
 - 식약처 표준 camelCase 필드명(foodNm, companyNm, enerc, chocdf, prot, fatce, foodSize, nutConSrtrQua) 우선 지원
 - 공공DB 제품명 앞의 불필요한 기호 정리 및 업체명 중복 축약
 - 제품 기준량/단위(g, mL)를 음식 입력란과 배지에 표시
-- 기존 v6.8.1 기능 유지, 서비스워커 캐시 v6.8.2로 갱신
+- 기존 v6.8.1 기능 유지, 서비스워커 캐시 v6.8.3로 갱신
