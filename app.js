@@ -1,6 +1,6 @@
 const $=s=>document.querySelector(s), mealsEl=$('#meals'); let photoData='', editingMealId=null;
 let state=JSON.parse(localStorage.getItem('meallog-state')||'{"goal":1800,"meals":[],"weights":[]}');
-state.meals=state.meals||[]; state.weights=state.weights||[]; state.goal=state.goal||1800; state.targetWeight=state.targetWeight||null;
+state.meals=state.meals||[]; state.weights=state.weights||[]; state.goal=state.goal||1800; state.targetWeight=state.targetWeight||null; state.activity=state.activity||{}; state.stepsGoal=state.stepsGoal||8000; state.waterGoal=state.waterGoal||2000;
 const FOOD_DB=[
 {name:'흰쌀밥',aliases:['밥','쌀밥','공기밥'],calories:130,carbs:28.2,protein:2.7,fat:.3,portions:[['1공기',210],['반공기',105],['100g',100]]},
 {name:'잡곡밥',aliases:['현미밥','잡곡'],calories:145,carbs:30,protein:3.2,fat:1.2,portions:[['1공기',210],['반공기',105],['100g',100]]},
@@ -117,8 +117,19 @@ function render(){
  $('#selectedDateLabel').textContent=dateText(selectedDate);$('#recordDateHint').textContent=selectedDate===localDateKey(new Date())?'':'';
  mealsEl.innerHTML=day.length?'':'<div class="empty">이 날짜에는 아직 기록이 없어요.<br>아래 버튼으로 식사를 추가해보세요.</div>';
  day.forEach(m=>{let c=(m.foods||[]).reduce((a,f)=>a+(+f.calories||0),0),names=(m.foods||[]).map(f=>f.name).join(', '),photo=m.photo?`<div class="mealPhoto"><img src="${m.photo}"></div>`:`<div class="mealNoPhoto"><span class="plateIcon"></span></div>`;let el=document.createElement('article');el.className='meal';el.innerHTML=`${photo}<div><h3>${m.type} · ${new Date(m.time).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</h3><p>${names||'음식 기록'}</p><p><b>${Math.round(c)} kcal</b></p></div><button class="delete">×</button>`;el.onclick=e=>{if(!e.target.closest('.delete'))openMealEditor(m)};el.querySelector('.delete').onclick=e=>{e.stopPropagation();if(confirm('이 기록을 삭제할까요?')){state.meals=state.meals.filter(x=>x.id!==m.id);save()}};mealsEl.appendChild(el)});
- renderCalendar()
+ renderCalendar();renderActivity()
 }
+function activityFor(k){if(!state.activity[k])state.activity[k]={steps:0,water:0,waterHistory:[]};state.activity[k].waterHistory=state.activity[k].waterHistory||[];return state.activity[k]}
+function renderActivity(){
+ let a=activityFor(selectedDate),sg=state.stepsGoal||8000,wg=state.waterGoal||2000,sp=Math.min(100,Math.round((a.steps||0)/sg*100)),wp=Math.min(100,Math.round((a.water||0)/wg*100));
+ $('#stepsToday').textContent=(a.steps||0).toLocaleString();$('#waterToday').textContent=(a.water||0).toLocaleString();$('#stepsGoalText').textContent=sg.toLocaleString();$('#waterGoalText').textContent=wg.toLocaleString();
+ $('#stepsPercent').textContent=`${sp}%`;$('#waterPercent').textContent=`${wp}%`;$('#stepsProgress').style.width=`${sp}%`;$('#waterProgress').style.width=`${wp}%`;$('#activityDateLabel').textContent=selectedDate===localDateKey(new Date())?'오늘':dateText(selectedDate);
+}
+function setSteps(){
+ let a=activityFor(selectedDate),v=prompt('걸음 수를 입력하세요.',a.steps||'');if(v===null)return;v=Math.max(0,Math.round(+v||0));a.steps=v;save();renderActivity()
+}
+function addWater(ml){let a=activityFor(selectedDate);a.waterHistory.push(ml);a.water=(a.water||0)+ml;save();renderActivity()}
+function undoWater(){let a=activityFor(selectedDate),last=a.waterHistory.pop();if(last){a.water=Math.max(0,(a.water||0)-last);save();renderActivity()}}
 function changeDay(n){let d=new Date(selectedDate+"T12:00:00");d.setDate(d.getDate()+n);selectedDate=localDateKey(d);calendarMonth=new Date(d);render()}
 $('#prevDay').onclick=()=>changeDay(-1);$('#nextDay').onclick=()=>changeDay(1);
 $('#dateBtn').onclick=()=>{calendarMonth=new Date(selectedDate+"T12:00:00");$('#calendarPanel').hidden=!$('#calendarPanel').hidden;renderCalendar()};
@@ -134,13 +145,13 @@ document.addEventListener('click',e=>{if(!e.target.closest('.foodNameWrap'))docu
 function setPhotoUI(){let has=!!photoData;$('#preview').hidden=!has;$('#photoText').hidden=has;$('#removePhoto').hidden=!has;$('#analyzeBtn').disabled=!has;if(has)$('#preview').src=photoData}
 function openNewMeal(){editingMealId=null;photoData='';$('#dialogTitle').textContent='음식 기록';$('#saveTop').textContent='저장';$('#photo').value='';$('#mealType').value='아침';$('#mealTime').value=defaultTimeForDate(selectedDate);$('#foods').innerHTML='';addFood();$('#memo').value='';$('#status').textContent='';setPhotoUI();$('#mealDialog').showModal()}
 function openMealEditor(m){editingMealId=m.id;photoData=m.photo||'';$('#dialogTitle').textContent='식사 기록 수정';$('#saveTop').textContent='수정 저장';$('#photo').value='';$('#mealType').value=m.type||'아침';$('#mealTime').value=m.time||defaultTimeForDate(selectedDate);$('#foods').innerHTML='';(m.foods&&m.foods.length?m.foods:[{}]).forEach(addFood);$('#memo').value=m.memo||'';$('#status').textContent='사진과 식사 내용을 수정할 수 있어요.';setPhotoUI();$('#mealDialog').showModal()}
-$('#addBtn').onclick=openNewMeal;
+$('#addBtn').onclick=openNewMeal;$('#editSteps').onclick=setSteps;document.querySelectorAll('[data-water]').forEach(b=>b.onclick=()=>addWater(+b.dataset.water));$('#undoWater').onclick=undoWater;
 $('#cancelBtn').onclick=()=>{editingMealId=null;$('#mealDialog').close()};$('#addFood').onclick=()=>addFood();$('#removePhoto').onclick=()=>{photoData='';$('#photo').value='';setPhotoUI();$('#status').textContent='사진을 삭제했어요. 저장하면 기록에서 제거돼요.'};
 $('#photo').onchange=async e=>{let f=e.target.files[0];if(!f)return;photoData=await resize(f,900,.72);setPhotoUI()};
 function resize(file,max,q){return new Promise(r=>{let im=new Image(),u=URL.createObjectURL(file);im.onload=()=>{let s=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);r(c.toDataURL('image/jpeg',q))};im.src=u})}
 $('#analyzeBtn').onclick=async()=>{let b=$('#analyzeBtn');b.disabled=true;$('#status').textContent='AI가 음식을 분석하고 있어요…';try{let res=await fetch('/api/analyze',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({image:photoData})}),data=await res.json();if(!res.ok)throw Error(data.error||'분석 실패');$('#foods').innerHTML='';(data.foods||[]).forEach(addFood);if(!(data.foods||[]).length)addFood();$('#status').textContent='AI 추정 결과예요. 음식과 양을 확인한 뒤 저장하세요.'}catch(e){$('#status').textContent=`AI 분석을 사용할 수 없어요: ${e.message} · 무료 음식 검색은 계속 사용할 수 있어요.`}finally{b.disabled=false}};
 $('#mealForm').onsubmit=e=>{e.preventDefault();let foods=[...document.querySelectorAll('.foodRow')].map(d=>({name:d.querySelector('.name').value||'음식',grams:+d.querySelector('.grams').value||0,calories:+d.querySelector('.calories').value||0,carbs:+d.querySelector('.carbs').value||0,protein:+d.querySelector('.protein').value||0,fat:+d.querySelector('.fat').value||0})).filter(f=>f.name!=='음식'||f.calories||f.grams);let time=$('#mealTime').value||defaultTimeForDate(selectedDate);let meal={id:editingMealId||crypto.randomUUID(),type:$('#mealType').value,time,photo:photoData,foods,memo:$('#memo').value};if(editingMealId){let i=state.meals.findIndex(x=>x.id===editingMealId);if(i>=0)state.meals[i]=meal;else state.meals.push(meal)}else state.meals.push(meal);editingMealId=null;selectedDate=time.slice(0,10);save();$('#mealDialog').close()};
-$('#settingsBtn').onclick=()=>{$('#goalInput').value=state.goal;$('#targetWeightInput').value=state.targetWeight||'';$('#settingsDialog').showModal()};$('#settingsClose').onclick=()=>$('#settingsDialog').close();$('#saveSettings').onclick=()=>{state.goal=+$('#goalInput').value||1800;let tw=+$('#targetWeightInput').value;state.targetWeight=tw>0?tw:null;save();$('#settingsDialog').close()};
+$('#settingsBtn').onclick=()=>{$('#goalInput').value=state.goal;$('#targetWeightInput').value=state.targetWeight||'';$('#stepsGoalInput').value=state.stepsGoal||8000;$('#waterGoalInput').value=state.waterGoal||2000;$('#settingsDialog').showModal()};$('#settingsClose').onclick=()=>$('#settingsDialog').close();$('#saveSettings').onclick=()=>{state.goal=+$('#goalInput').value||1800;let tw=+$('#targetWeightInput').value;state.targetWeight=tw>0?tw:null;state.stepsGoal=+$('#stepsGoalInput').value||8000;state.waterGoal=+$('#waterGoalInput').value||2000;save();$('#settingsDialog').close()};
 let statsDays=7;
 function dayKeyOffset(n){let d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+n);return localDateKey(d)}
 function renderStats(){
@@ -186,6 +197,6 @@ document.querySelectorAll('.periodSwitch button').forEach(b=>b.onclick=()=>{stat
 $('#weightDate').value=localDateKey(new Date());
 $('#saveWeight').onclick=()=>{let date=$('#weightDate').value,val=+$ ('#weightValue').value;if(!date||!val)return alert('날짜와 체중을 입력해주세요.');let ex=state.weights.find(x=>x.date===date);if(ex)ex.value=val;else state.weights.push({date,value:val});save();$('#weightValue').value='';renderWeights()};
 $('#exportData').onclick=()=>{let blob=new Blob([JSON.stringify({...state,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`MealLogAI-backup-${localDateKey(new Date())}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)};
-$('#importData').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let data=JSON.parse(await f.text());if(!Array.isArray(data.meals))throw Error();if(confirm('현재 기록을 백업 파일의 내용으로 바꿀까요?')){state={goal:data.goal||1800,targetWeight:data.targetWeight||null,meals:data.meals||[],weights:data.weights||[]};save();alert('백업을 불러왔어요.')}}catch{alert('올바른 MealLogAI 백업 파일이 아니에요.')}e.target.value=''};
+$('#importData').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let data=JSON.parse(await f.text());if(!Array.isArray(data.meals))throw Error();if(confirm('현재 기록을 백업 파일의 내용으로 바꿀까요?')){state={goal:data.goal||1800,targetWeight:data.targetWeight||null,meals:data.meals||[],weights:data.weights||[],activity:data.activity||{},stepsGoal:data.stepsGoal||8000,waterGoal:data.waterGoal||2000};save();alert('백업을 불러왔어요.')}}catch{alert('올바른 MealLogAI 백업 파일이 아니에요.')}e.target.value=''};
 
 if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js');render();

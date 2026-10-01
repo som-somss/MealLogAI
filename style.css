@@ -71,3 +71,11 @@ h1{font-weight:800;letter-spacing:-1.25px}
 .singleWeight{min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:#fffaf7;border-radius:16px;padding:22px}
 .singleWeight small{font-size:11px;color:#a5968e}.singleWeight strong{font-size:31px;margin:7px 0;color:#302b28}.singleWeight p{font-size:12px;color:#9b8e87;margin:0}
 .singleGoal{display:flex;gap:10px;align-items:center;margin-top:16px;background:#eef3e9;border-radius:999px;padding:7px 12px;color:#65745b;font-size:11px}.singleGoal b{font-size:11px}
+
+/* Growth v3: steps + water */
+.activityCard{margin:14px 0 20px;background:#fff;border:1px solid #f0e1da;border-radius:23px;padding:16px;box-shadow:0 8px 25px #9d6c5810}
+.activityHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.activityHead>div{display:flex;flex-direction:column}.activityHead b{font-size:16px;margin-top:2px}.activityHead>span{font-size:10px;color:#a5968e}
+.activityGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.activityItem{background:#fffaf7;border:1px solid #f4e7e0;border-radius:18px;padding:13px}.activityTitle{display:flex;gap:9px;align-items:center}.activityTitle>div{display:flex;flex-direction:column}.activityTitle small{font-size:10px}.activityTitle b{font-size:15px;margin-top:2px}.activityIcon{width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:#eef5e8;color:#70805e;font-size:24px;font-weight:700}.waterIcon{background:#edf6fb;color:#6d9db6}
+.progress{height:7px;background:#f0ece8;border-radius:99px;overflow:hidden;margin:12px 0 6px}.progress i{display:block;height:100%;width:0;background:#f29b83;border-radius:99px;transition:width .2s}.activityItem:nth-child(2) .progress i{background:#8fc8df}
+.activityMeta{display:flex;justify-content:space-between;color:#9b8e87;font-size:9px}.activityActions{margin-top:10px;display:flex;gap:5px}.activityActions button{flex:1;border:0;background:#f3eee9;color:#6f655f;border-radius:10px;padding:8px 5px;font-size:10px;font-weight:700}.waterBtns button:first-child,.waterBtns button:nth-child(2){background:#edf6fb;color:#557f94}
+@media(max-width:440px){.activityGrid{grid-template-columns:1fr}.activityActions button{padding:9px 6px}}

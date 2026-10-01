@@ -29,6 +29,23 @@
 </div>
 
 <section class="summary"><div class="ring"><strong id="totalCal">0</strong><span>kcal</span></div><div class="summaryText"><p>오늘 섭취량</p><b><span id="remainCal">1800</span> kcal 남음</b><div class="macros"><span class="macro carb">탄수 <b id="carbs">0</b>g</span><span class="macro protein">단백질 <b id="protein">0</b>g</span><span class="macro fat">지방 <b id="fat">0</b>g</span></div></div></section>
+<section class="activityCard">
+<div class="activityHead"><div><small>오늘의 활동</small><b>건강 기록</b></div><span id="activityDateLabel"></span></div>
+<div class="activityGrid">
+<div class="activityItem">
+<div class="activityTitle"><span class="activityIcon">◌</span><div><small>걸음 수</small><b><span id="stepsToday">0</span> 걸음</b></div></div>
+<div class="progress"><i id="stepsProgress"></i></div>
+<div class="activityMeta"><span>목표 <b id="stepsGoalText">8,000</b></span><span id="stepsPercent">0%</span></div>
+<div class="activityActions"><button type="button" id="editSteps">직접 입력</button></div>
+</div>
+<div class="activityItem">
+<div class="activityTitle"><span class="activityIcon waterIcon">◒</span><div><small>물</small><b><span id="waterToday">0</span> mL</b></div></div>
+<div class="progress"><i id="waterProgress"></i></div>
+<div class="activityMeta"><span>목표 <b id="waterGoalText">2,000</b> mL</span><span id="waterPercent">0%</span></div>
+<div class="activityActions waterBtns"><button type="button" data-water="250">+250</button><button type="button" data-water="500">+500</button><button type="button" id="undoWater">되돌리기</button></div>
+</div>
+</div>
+</section>
 <div class="sectionTitle"><b>나의 식사 기록</b><span id="recordDateHint"></span></div>
 <section id="meals"></section><button id="addBtn" class="add"><span>＋</span> 음식 기록</button>
 </div>
@@ -72,7 +89,8 @@
 </form></dialog>
 
 <dialog id="settingsDialog"><form><div class="dialogHead"><button type="button" id="settingsClose">닫기</button><b>설정</b><span></span></div><label>하루 목표 칼로리<input id="goalInput" type="number" min="500" max="6000" step="50"></label>
-<label>목표 체중<input id="targetWeightInput" type="number" min="20" max="300" step="0.1" placeholder="예: 55.0"></label><p class="hint">식사 기록과 사진은 현재 이 기기의 브라우저에 저장돼요. 백업 파일을 내려받아 보관할 수도 있어요.</p><button type="button" id="saveSettings" class="ai">저장</button>
+<label>목표 체중<input id="targetWeightInput" type="number" min="20" max="300" step="0.1" placeholder="예: 55.0"></label>
+<div class="grid"><label>하루 목표 걸음 수<input id="stepsGoalInput" type="number" min="1000" max="100000" step="500" placeholder="8000"></label><label>하루 물 목표 (mL)<input id="waterGoalInput" type="number" min="250" max="10000" step="250" placeholder="2000"></label></div><p class="hint">식사 기록과 사진은 현재 이 기기의 브라우저에 저장돼요. 백업 파일을 내려받아 보관할 수도 있어요.</p><button type="button" id="saveSettings" class="ai">저장</button>
 <div class="settingsDivider"></div>
 <b class="settingsTitle">데이터 백업</b>
 <p class="hint">로그인·클라우드 연결 전에도 기록을 안전하게 보관할 수 있어요.</p>
