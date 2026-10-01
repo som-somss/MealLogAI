@@ -16,3 +16,11 @@ Vercel 프로젝트 Settings → Environment Variables에 `FOOD_API_KEY`를 추�
 - 공공DB 제품명 앞의 불필요한 기호 정리 및 업체명 중복 축약
 - 제품 기준량/단위(g, mL)를 음식 입력란과 배지에 표시
 - 기존 v6.8.1 기능 유지, 서비스워커 캐시 v6.8.3로 갱신
+
+
+## v6.8.4
+Barcode product data normalization and serving-unit handling.
+
+
+## v6.8.5
+음식 검색창을 통합 자동검색으로 변경했습니다. 2글자 이상 입력 후 잠시 멈추면 로컬DB/최근 바코드/식약처/Open Food Facts 결과를 함께 표시합니다.
