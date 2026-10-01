@@ -24,3 +24,6 @@ Barcode product data normalization and serving-unit handling.
 
 ## v6.8.5
 음식 검색창을 통합 자동검색으로 변경했습니다. 2글자 이상 입력 후 잠시 멈추면 로컬DB/최근 바코드/식약처/Open Food Facts 결과를 함께 표시합니다.
+
+## v6.9
+바코드/식약처/제품DB 데이터를 하나의 제품 레코드로 통합합니다. 제품 용량과 영양성분 기준량을 분리하여 음료 mL 계산을 안정화했고, 바코드 캐시를 v3로 갱신했습니다.
