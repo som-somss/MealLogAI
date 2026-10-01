@@ -218,3 +218,6 @@ body.mealModalOpen #addMeal { visibility:hidden !important; pointer-events:none 
 }
 /* v6.8 food public DB + barcode */
 .foodTools{display:flex;align-items:center;gap:10px;margin:10px 0 12px}.foodToolBtn{border:1px solid #ead9d1;background:#fff8f4;border-radius:14px;padding:11px 14px;font-weight:700;color:#6b5147}.publicDbState{font-size:12px;color:#9a7c70}.barcodePanel{border:1px solid #eadbd4;background:#fffaf7;border-radius:18px;padding:14px;margin:8px 0 14px}.barcodeHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.barcodeHead button{border:0;background:transparent;color:#9a6d5e}.barcodePanel video{width:100%;max-height:230px;object-fit:cover;border-radius:14px;background:#111;margin-bottom:8px}.barcodeManual{display:grid;grid-template-columns:1fr auto;gap:8px}.barcodeManual input{min-width:0}.barcodeManual button{border:0;border-radius:12px;padding:0 14px;background:#efaa91;color:white;font-weight:700}.remoteSuggestion{border-left:3px solid #efb29b!important}
+
+/* v6.8.2: amount unit display */
+.amountInput{position:relative;display:flex;align-items:center}.amountInput .grams{width:100%;padding-right:42px}.amountUnit{position:absolute;right:14px;color:#9b8d84;font-size:12px;font-weight:700;pointer-events:none}
