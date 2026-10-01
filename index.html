@@ -9,7 +9,13 @@
 </head><body>
 <main>
 <header><div><small id="todayLabel"></small><h1>오늘 뭐 먹었지?</h1></div><button id="settingsBtn" class="icon">⚙︎</button></header>
+<nav class="appTabs">
+<button class="tab active" data-view="diary">기록</button>
+<button class="tab" data-view="stats">통계</button>
+<button class="tab" data-view="weight">체중</button>
+</nav>
 
+<div id="diaryView" class="appView">
 <section class="dateNav">
 <button id="prevDay" class="dateArrow">‹</button>
 <button id="dateBtn" class="dateButton"><span id="selectedDateLabel"></span><small>날짜 선택</small></button>
@@ -25,11 +31,31 @@
 <section class="summary"><div class="ring"><strong id="totalCal">0</strong><span>kcal</span></div><div class="summaryText"><p>오늘 섭취량</p><b><span id="remainCal">1800</span> kcal 남음</b><div class="macros"><span class="macro carb">탄수 <b id="carbs">0</b>g</span><span class="macro protein">단백질 <b id="protein">0</b>g</span><span class="macro fat">지방 <b id="fat">0</b>g</span></div></div></section>
 <div class="sectionTitle"><b>나의 식사 기록</b><span id="recordDateHint"></span></div>
 <section id="meals"></section><button id="addBtn" class="add"><span>＋</span> 음식 기록</button>
+</div>
+
+<div id="statsView" class="appView" hidden>
+<section class="pageIntro"><small>나의 식사 흐름</small><h2>식사 통계</h2><p>최근 기록을 한눈에 확인해요.</p></section>
+<div class="periodSwitch"><button data-days="7" class="active">7일</button><button data-days="30">30일</button></div>
+<section class="statCards">
+<div class="statCard"><small>하루 평균</small><b id="avgCalories">0 kcal</b></div>
+<div class="statCard"><small>기록한 날</small><b id="loggedDays">0일</b></div>
+<div class="statCard"><small>평균 단백질</small><b id="avgProtein">0g</b></div>
+</section>
+<section class="chartCard"><div class="cardTitle"><b>칼로리 추이</b><span id="statsPeriodLabel"></span></div><div id="calorieChart" class="barChart"></div></section>
+<section class="chartCard"><div class="cardTitle"><b>자주 먹은 음식</b><span>기록 기준</span></div><div id="topFoods" class="topFoods"></div></section>
+</div>
+
+<div id="weightView" class="appView" hidden>
+<section class="pageIntro"><small>몸의 변화도 함께</small><h2>체중 기록</h2><p>식사 기록과 함께 변화 추이를 확인해요.</p></section>
+<section class="weightInputCard"><label>날짜<input id="weightDate" type="date"></label><label>체중<input id="weightValue" type="number" min="20" max="300" step="0.1" placeholder="예: 62.5"></label><button id="saveWeight" type="button">체중 저장</button></section>
+<section class="chartCard"><div class="cardTitle"><b>최근 체중 변화</b><span id="weightChange"></span></div><div id="weightChart" class="lineList"></div></section>
+<section class="chartCard"><div class="cardTitle"><b>체중 기록</b><span>최근 순</span></div><div id="weightList" class="weightList"></div></section>
+</div>
 </main>
 
 <dialog id="mealDialog"><form id="mealForm">
 <div class="dialogHead"><button type="button" id="cancelBtn">취소</button><b id="dialogTitle">음식 기록</b><button type="submit" id="saveTop" class="saveTop">저장</button></div>
-<label class="photo"><input id="photo" type="file" accept="image/*" capture="environment"><div class="photoWrap"><img id="preview" hidden><div id="photoStamp" class="photoStamp" hidden></div></div><span id="photoText"><b>📷</b><br>오늘 먹은 음식 사진<br><small>사진 촬영 또는 앨범에서 선택</small></span></label><div class="photoActions"><label for="photo" class="photoChange">📷 사진 추가·변경</label><button type="button" id="removePhoto" class="photoRemove" hidden>사진 삭제</button></div>
+<label class="photo"><input id="photo" type="file" accept="image/*" capture="environment"><div class="photoWrap"><img id="preview" hidden></div><span id="photoText"><b>📷</b><br>오늘 먹은 음식 사진<br><small>사진 촬영 또는 앨범에서 선택</small></span></label><div class="photoActions"><label for="photo" class="photoChange">📷 사진 추가·변경</label><button type="button" id="removePhoto" class="photoRemove" hidden>사진 삭제</button></div>
 <button type="button" id="analyzeBtn" class="ai" disabled>AI 음식 분석 <span>선택</span></button><p class="aiNote">사진 저장은 무료예요. AI 버튼을 누를 때만 API를 사용해요.</p><p id="status" class="status"></p>
 <div class="grid"><label>식사 종류<select id="mealType"><option>아침</option><option>점심</option><option>저녁</option><option>간식</option></select></label><label>먹은 시간<input id="mealTime" type="datetime-local"></label></div>
 <div class="dbHelp"><b>무료 음식 계산</b><span>음식명을 검색하고 먹은 양만 알려주세요.</span></div>
@@ -37,5 +63,10 @@
 <label>메모<textarea id="memo" rows="2" placeholder="오늘 식사는 어땠나요?"></textarea></label>
 </form></dialog>
 
-<dialog id="settingsDialog"><form><div class="dialogHead"><button type="button" id="settingsClose">닫기</button><b>설정</b><span></span></div><label>하루 목표 칼로리<input id="goalInput" type="number" min="500" max="6000" step="50"></label><p class="hint">식사 기록과 사진은 이 기기의 브라우저에 저장돼요. 사진의 날짜·시간 표시는 식사 시간과 함께 표시되며 원본 사진은 훼손하지 않아요.</p><button type="button" id="saveSettings" class="ai">저장</button></form></dialog>
+<dialog id="settingsDialog"><form><div class="dialogHead"><button type="button" id="settingsClose">닫기</button><b>설정</b><span></span></div><label>하루 목표 칼로리<input id="goalInput" type="number" min="500" max="6000" step="50"></label><p class="hint">식사 기록과 사진은 이 기기의 브라우저에 저장돼요. 식사 기록과 사진은 현재 이 기기에 저장돼요. 백업 파일을 내려받아 보관할 수도 있어요.</p><button type="button" id="saveSettings" class="ai">저장</button>
+<div class="settingsDivider"></div>
+<b class="settingsTitle">데이터 백업</b>
+<p class="hint">로그인·클라우드 연결 전에도 기록을 안전하게 보관할 수 있어요.</p>
+<div class="backupBtns"><button type="button" id="exportData" class="secondary">백업 파일 저장</button><label class="secondary importBtn">백업 불러오기<input id="importData" type="file" accept="application/json"></label></div>
+<div class="cloudReady"><b>계정 · 클라우드 동기화</b><span>다음 연결 단계 준비됨</span><p>로그인과 여러 기기 동기화는 클라우드 프로젝트 연결 후 활성화됩니다.</p></div></form></dialog>
 <script src="/app.js"></script></body></html>
