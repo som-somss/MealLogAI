@@ -290,9 +290,12 @@ function setPhotoUI(){let has=!!photoData;$('#preview').hidden=!has;$('#photoTex
 function openNewMeal(){editingMealId=null;photoData='';$('#dialogTitle').textContent='음식 기록';$('#saveTop').textContent='저장';$('#photo').value='';$('#mealType').value='아침';$('#mealTime').value=defaultTimeForDate(selectedDate);$('#foods').innerHTML='';addFood();let ni=document.querySelector('.foodRow .name');if(ni)ni.placeholder='아침 식사로 무엇을 드셨나요?';$('#memo').value='';$('#status').textContent='';setPhotoUI();$('#mealDialog').showModal()}
 function openMealEditor(m){editingMealId=m.id;photoData=m.photo||'';$('#dialogTitle').textContent='식사 기록 수정';$('#saveTop').textContent='수정 저장';$('#photo').value='';$('#mealType').value=m.type||'아침';$('#mealTime').value=m.time||defaultTimeForDate(selectedDate);$('#foods').innerHTML='';(m.foods&&m.foods.length?m.foods:[{}]).forEach(addFood);$('#memo').value=m.memo||'';$('#status').textContent='사진과 식사 내용을 수정할 수 있어요.';setPhotoUI();$('#mealDialog').showModal()}
 $('#addBtn').onclick=openNewMeal;
+// v6.1: clicking the backdrop must NOT close the meal editor.
+// This prevents accidental loss of a meal while scrolling/tapping on mobile.
 $('#mealDialog').addEventListener('click',e=>{
-  if(e.target===$('#mealDialog')){ editingMealId=null; photoData=''; $('#mealDialog').close(); }
+  if(e.target===$('#mealDialog')) e.preventDefault();
 });
+$('#mealDialog').addEventListener('cancel',e=>e.preventDefault());
 
 function setEntryMode(mode){
   document.querySelectorAll('.entryMode').forEach(b=>b.classList.remove('active'));
@@ -311,14 +314,62 @@ function setEntryMode(mode){
 $('#modeSearch').onclick=()=>setEntryMode('search');
 $('#modePhoto').onclick=()=>setEntryMode('photo');
 $('#modeAI').onclick=()=>setEntryMode('ai');$('#editSteps').onclick=setSteps;document.querySelectorAll('[data-water]').forEach(b=>b.onclick=()=>addWater(+b.dataset.water));$('#undoWater').onclick=undoWater;
-$('#cancelBtn').onclick=e=>{
-  e.preventDefault(); e.stopPropagation();
+function mealDraftHasContent(){
+  if(editingMealId) return true;
+  if(photoData || ($('#memo').value||'').trim()) return true;
+  return [...document.querySelectorAll('#foods .foodRow')].some(row=>{
+    const name=(row.querySelector('.name')?.value||'').trim();
+    const grams=+(row.querySelector('.grams')?.value||0);
+    const calories=+(row.querySelector('.calories')?.value||0);
+    return !!name || grams>0 || calories>0;
+  });
+}
+function closeMealEditor(){
+  if(mealDraftHasContent() && !confirm('작성 중인 기록을 취소할까요?')) return;
   editingMealId=null; photoData='';
   document.querySelectorAll('.suggestions').forEach(x=>x.hidden=true);
   $('#mealDialog').close();
-};$('#addFood').onclick=()=>addFood();$('#removePhoto').onclick=()=>{photoData='';$('#photo').value='';setPhotoUI();$('#status').textContent='사진을 삭제했어요. 저장하면 기록에서 제거돼요.'};
-$('#photo').onchange=async e=>{let f=e.target.files[0];if(!f)return;photoData=await resize(f,900,.72);setPhotoUI()};
-function resize(file,max,q){return new Promise(r=>{let im=new Image(),u=URL.createObjectURL(file);im.onload=()=>{let s=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);r(c.toDataURL('image/jpeg',q))};im.src=u})}
+}
+// Capture pointer/touch before inner layers can swallow the event on iPhone/mobile.
+$('#mealDialog').addEventListener('pointerdown',e=>{
+  if(e.target.closest('#cancelBtn')){ e.preventDefault(); e.stopPropagation(); closeMealEditor(); }
+},true);
+$('#cancelBtn').onclick=e=>{ e.preventDefault(); e.stopPropagation(); closeMealEditor(); };$('#addFood').onclick=()=>addFood();$('#removePhoto').onclick=()=>{photoData='';$('#photo').value='';setPhotoUI();$('#status').textContent='사진을 삭제했어요. 저장하면 기록에서 제거돼요.'};
+$('#photo').onchange=async e=>{
+  const f=e.target.files&&e.target.files[0]; if(!f)return;
+  $('#status').textContent='사진을 불러오는 중이에요…';
+  try{
+    photoData=await resize(f,1200,.78);
+    if(!photoData) throw new Error('사진을 읽지 못했어요.');
+    setPhotoUI();
+    $('#status').textContent='사진이 추가됐어요.';
+    // iPhone camera/file picker can alter the visual viewport; return content to the top.
+    requestAnimationFrame(()=>document.querySelector('#mealDialog .mealDialogBody')?.scrollTo({top:0,behavior:'smooth'}));
+  }catch(err){
+    photoData=''; setPhotoUI();
+    $('#status').textContent='사진을 불러오지 못했어요. 다른 사진을 선택해 주세요.';
+  }
+};
+function fileToDataURL(file){return new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>resolve(fr.result);fr.onerror=()=>reject(fr.error||new Error('파일 읽기 실패'));fr.readAsDataURL(file)})}
+async function resize(file,max,q){
+  const original=await fileToDataURL(file);
+  return await new Promise(resolve=>{
+    const im=new Image();
+    im.onload=()=>{
+      try{
+        const scale=Math.min(1,max/Math.max(im.naturalWidth||im.width,im.naturalHeight||im.height));
+        const c=document.createElement('canvas');
+        c.width=Math.max(1,Math.round((im.naturalWidth||im.width)*scale));
+        c.height=Math.max(1,Math.round((im.naturalHeight||im.height)*scale));
+        const ctx=c.getContext('2d'); ctx.drawImage(im,0,0,c.width,c.height);
+        resolve(c.toDataURL('image/jpeg',q));
+      }catch(_){ resolve(original) }
+    };
+    // Some iPhone photo formats may not decode through canvas in every Safari version.
+    // In that case keep the original file data so the photo can still be saved/displayed.
+    im.onerror=()=>resolve(original); im.src=original;
+  });
+}
 $('#analyzeBtn').onclick=async()=>{let b=$('#analyzeBtn');b.disabled=true;$('#status').textContent='AI가 음식을 분석하고 있어요…';try{let res=await fetch('/api/analyze',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({image:photoData})}),data=await res.json();if(!res.ok)throw Error(data.error||'분석 실패');$('#foods').innerHTML='';(data.foods||[]).forEach(addFood);if(!(data.foods||[]).length)addFood();$('#status').textContent='AI 추정 결과예요. 음식과 양을 확인한 뒤 저장하세요.'}catch(e){$('#status').textContent=`AI 분석을 사용할 수 없어요: ${e.message} · 음식 검색은 계속 사용할 수 있어요.`}finally{b.disabled=false}};
 $('#mealForm').onsubmit=e=>{e.preventDefault();let foods=[...document.querySelectorAll('.foodRow')].map(d=>({name:d.querySelector('.name').value||'음식',grams:+d.querySelector('.grams').value||0,calories:+d.querySelector('.calories').value||0,carbs:+d.querySelector('.carbs').value||0,protein:+d.querySelector('.protein').value||0,fat:+d.querySelector('.fat').value||0})).filter(f=>f.name!=='음식'||f.calories||f.grams);let time=$('#mealTime').value||defaultTimeForDate(selectedDate);let meal={id:editingMealId||crypto.randomUUID(),type:$('#mealType').value,time,photo:photoData,foods,memo:$('#memo').value};if(editingMealId){let i=state.meals.findIndex(x=>x.id===editingMealId);if(i>=0)state.meals[i]=meal;else state.meals.push(meal)}else state.meals.push(meal);editingMealId=null;selectedDate=time.slice(0,10);save();$('#mealDialog').close()};
 $('#settingsBtn').onclick=()=>{$('#goalInput').value=state.goal;$('#targetWeightInput').value=state.targetWeight||'';$('#stepsGoalInput').value=state.stepsGoal||8000;$('#waterGoalInput').value=state.waterGoal||2000;$('#settingsDialog').showModal()};$('#settingsClose').onclick=()=>$('#settingsDialog').close();$('#saveSettings').onclick=()=>{state.goal=+$('#goalInput').value||1800;let tw=+$('#targetWeightInput').value;state.targetWeight=tw>0?tw:null;state.stepsGoal=+$('#stepsGoalInput').value||8000;state.waterGoal=+$('#waterGoalInput').value||2000;save();$('#settingsDialog').close()};
