@@ -1,1 +1,88 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f7f7f2"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="MealLog AI"><link rel="apple-touch-icon" href="/icons/icon-192.png"><link rel="manifest" href="/manifest.webmanifest"><link rel="stylesheet" href="/style.css"><title>MealLog AI</title></head><body><main><header><div><small id="todayLabel"></small><h1>오늘의 식사</h1></div><button id="settingsBtn" class="icon">⚙︎</button></header><section class="summary"><div class="ring"><strong id="totalCal">0</strong><span>kcal</span></div><div><p>오늘 섭취량</p><b><span id="remainCal">1800</span> kcal 남음</b><div class="macros"><span>탄 <b id="carbs">0</b>g</span><span>단 <b id="protein">0</b>g</span><span>지 <b id="fat">0</b>g</span></div></div></section><section id="meals"></section><button id="addBtn" class="add">＋ 음식 기록</button></main><dialog id="mealDialog"><form id="mealForm"><div class="dialogHead"><button type="button" id="cancelBtn">취소</button><b>음식 기록</b><button type="submit">저장</button></div><label class="photo"><input id="photo" type="file" accept="image/*" capture="environment"><img id="preview" hidden><span id="photoText">📷<br>사진 촬영 또는 선택</span></label><button type="button" id="analyzeBtn" class="ai" disabled>✨ AI로 음식 분석</button><p id="status" class="status"></p><div class="grid"><label>식사 종류<select id="mealType"><option>아침</option><option>점심</option><option>저녁</option><option>간식</option></select></label><label>먹은 시간<input id="mealTime" type="datetime-local"></label></div><div id="foods"></div><button type="button" id="addFood" class="secondary">＋ 음식 직접 추가</button><label>메모<textarea id="memo" rows="2" placeholder="선택 사항"></textarea></label></form></dialog><dialog id="settingsDialog"><form><div class="dialogHead"><button type="button" id="settingsClose">닫기</button><b>설정</b><span></span></div><label>하루 목표 칼로리<input id="goalInput" type="number" min="500" max="6000" step="50"></label><p class="hint">식사 기록과 사진은 이 기기의 브라우저 저장공간에 저장됩니다. AI 분석은 사진을 서버로 전송해 처리합니다.</p><button type="button" id="saveSettings" class="ai">저장</button></form></dialog><script src="/app.js"></script></body></html>
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f7f7f2">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="MealLog AI">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/style.css">
+  <title>MealLog AI</title>
+</head>
+<body>
+<main>
+  <header>
+    <div><small id="todayLabel"></small><h1>오늘의 식사</h1></div>
+    <button id="settingsBtn" class="icon">⚙︎</button>
+  </header>
+
+  <section class="summary">
+    <div class="ring"><strong id="totalCal">0</strong><span>kcal</span></div>
+    <div>
+      <p>오늘 섭취량</p>
+      <b><span id="remainCal">1800</span> kcal 남음</b>
+      <div class="macros">
+        <span>탄 <b id="carbs">0</b>g</span>
+        <span>단 <b id="protein">0</b>g</span>
+        <span>지 <b id="fat">0</b>g</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="meals"></section>
+  <button id="addBtn" class="add">＋ 음식 기록</button>
+</main>
+
+<dialog id="mealDialog">
+<form id="mealForm">
+  <div class="dialogHead">
+    <button type="button" id="cancelBtn">취소</button>
+    <b>음식 기록</b>
+    <button type="submit">저장</button>
+  </div>
+
+  <label class="photo">
+    <input id="photo" type="file" accept="image/*" capture="environment">
+    <img id="preview" hidden>
+    <span id="photoText">📷<br>사진 촬영 또는 선택</span>
+  </label>
+
+  <button type="button" id="analyzeBtn" class="ai" disabled>✨ AI로 음식 분석 (선택)</button>
+  <p class="aiNote">사진 저장은 무료입니다. 이 버튼을 누를 때만 OpenAI API를 사용합니다.</p>
+  <p id="status" class="status"></p>
+
+  <div class="grid">
+    <label>식사 종류
+      <select id="mealType"><option>아침</option><option>점심</option><option>저녁</option><option>간식</option></select>
+    </label>
+    <label>먹은 시간<input id="mealTime" type="datetime-local"></label>
+  </div>
+
+  <div class="dbHelp">
+    <b>무료 음식 계산</b>
+    <span>음식명을 입력하고 검색 결과를 선택한 뒤 양을 조절하세요.</span>
+  </div>
+  <div id="foods"></div>
+  <button type="button" id="addFood" class="secondary">＋ 음식 추가</button>
+
+  <label>메모<textarea id="memo" rows="2" placeholder="선택 사항"></textarea></label>
+</form>
+</dialog>
+
+<dialog id="settingsDialog">
+<form>
+  <div class="dialogHead">
+    <button type="button" id="settingsClose">닫기</button><b>설정</b><span></span>
+  </div>
+  <label>하루 목표 칼로리<input id="goalInput" type="number" min="500" max="6000" step="50"></label>
+  <p class="hint">식사 기록과 사진은 이 기기의 브라우저 저장공간에 저장됩니다. AI 분석 버튼을 사용할 때만 사진을 서버로 전송합니다.</p>
+  <button type="button" id="saveSettings" class="ai">저장</button>
+</form>
+</dialog>
+
+<script src="/app.js"></script>
+</body>
+</html>
