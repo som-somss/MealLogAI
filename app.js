@@ -300,13 +300,36 @@ function chooseExternalFood(row,f){
   const unit=row.querySelector('.amountUnit');if(unit)unit.textContent=unitName;calcExternalRow(row);
   row.querySelector('.portion').hidden=true;const badge=row.querySelector('.dbBadge');badge.hidden=false;const src=f.source==='mfds'?'식약처 DB':f.source==='mfds+off'?'식약처+바코드 DB':'제품 DB';badge.textContent=`${src} · ${amount}${unitName} 입력 · 영양 ${base}${nutUnit} 기준`;row.querySelector('.suggestions').hidden=true;
 }
+// v6.9.3 replacement block: replace appendPublicSuggestions + showSuggestions in app.js
 async function appendPublicSuggestions(row,q,seq){
-  try{const r=await fetch(`/api/food-search?q=${encodeURIComponent(q)}`);const d=await r.json();if(seq!==publicFoodSeq||!document.body.contains(row))return;const box=row.querySelector('.suggestions');
-    (d.items||[]).slice(0,12).forEach(f=>{let b=document.createElement('button');b.type='button';b.className='suggestion remoteSuggestion';b.innerHTML=`<b>${cleanPublicText(f.name)}</b><small>${f.source==='mfds'?'식약처 DB · ':f.source==='off'?'제품 DB · ':''}${cleanMaker(f.maker)?cleanMaker(f.maker)+' · ':''}${cleanPublicText(f.foodSize||f.basis)?cleanPublicText(f.foodSize||f.basis)+' 기준 · ':''}${Math.round(num(f.calories))} kcal · 탄 ${num(f.carbs).toFixed(1)}g · 단 ${num(f.protein).toFixed(1)}g · 지 ${num(f.fat).toFixed(1)}g</small>`;b.onclick=()=>chooseExternalFood(row,f);box.appendChild(b)});if(box.children.length)box.hidden=false;
-    const st=$('#publicDbState');if(st)st.textContent='통합 음식 검색 연결됨';
-  }catch(_){const st=$('#publicDbState');if(st)st.textContent='공공DB 연결 확인 필요'}
+  const box=row.querySelector('.suggestions');
+  try{
+    const r=await fetch(`/api/food-search?q=${encodeURIComponent(q)}&t=${Date.now()}`,{cache:'no-store'});
+    const d=await r.json();
+    if(seq!==Number(row.dataset.publicFoodSeq||0)||!document.body.contains(row))return;
+    box.querySelector('.publicLoading')?.remove();
+    (d.items||[]).slice(0,12).forEach(f=>{let b=document.createElement('button');b.type='button';b.className='suggestion remoteSuggestion';b.innerHTML=`<span class="suggestionText"><b>${cleanPublicText(f.name)}</b><small>${f.source==='mfds'?'식약처 DB · ':f.source==='off'?'제품 DB · ':''}${cleanMaker(f.maker)?cleanMaker(f.maker)+' · ':''}${cleanPublicText(f.foodSize||f.basis)?cleanPublicText(f.foodSize||f.basis)+' 기준 · ':''}${Math.round(num(f.calories))} kcal · 탄 ${num(f.carbs).toFixed(1)}g · 단 ${num(f.protein).toFixed(1)}g · 지 ${num(f.fat).toFixed(1)}g</small></span><span class="suggestionPlus">+</span>`;b.onclick=()=>chooseExternalFood(row,f);box.appendChild(b)});
+    box.hidden=!box.children.length;
+    const st=$('#publicDbState');if(st)st.textContent='식약처 공공DB 연결됨';
+  }catch(_){
+    box.querySelector('.publicLoading')?.remove();box.hidden=!box.children.length;
+    const st=$('#publicDbState');if(st)st.textContent='공공DB 연결 확인 필요';
+  }
 }
-function showSuggestions(row,q){let box=row.querySelector('.suggestions'),ms=findFoods(q);box.innerHTML='';if(!q){box.hidden=true;return}ms.forEach(f=>{let b=document.createElement('button');b.type='button';b.className='suggestion';b.innerHTML=`<b>${f.name}</b><small>앱 기본DB · 100g 기준 ${f.calories} kcal · 탄 ${f.carbs}g · 단 ${f.protein}g · 지 ${f.fat}g</small>`;b.onclick=()=>chooseFood(row,f);box.appendChild(b)});cachedBarcodeFoods(q).forEach(f=>{let b=document.createElement('button');b.type='button';b.className='suggestion';b.innerHTML=`<b>${cleanPublicText(f.name)}</b><small>최근 바코드 제품${cleanMaker(f.maker)?' · '+cleanMaker(f.maker):''} · ${Math.round(num(f.calories))} kcal</small>`;b.onclick=()=>chooseExternalFood(row,f);box.appendChild(b)});box.hidden=!box.children.length;if(norm(q).length>=2){clearTimeout(publicFoodTimer);const seq=++publicFoodSeq;publicFoodTimer=setTimeout(()=>appendPublicSuggestions(row,q,seq),550)}}
+function showSuggestions(row,q){
+  const box=row.querySelector('.suggestions'),ms=findFoods(q);box.innerHTML='';
+  if(!q){box.hidden=true;return}
+  ms.forEach(f=>{let b=document.createElement('button');b.type='button';b.className='suggestion';b.innerHTML=`<span class="suggestionText"><b>${f.name}</b><small>앱 기본DB · 100g 기준 ${f.calories} kcal · 탄 ${f.carbs}g · 단 ${f.protein}g · 지 ${f.fat}g</small></span><span class="suggestionPlus">+</span>`;b.onclick=()=>chooseFood(row,f);box.appendChild(b)});
+  cachedBarcodeFoods(q).forEach(f=>{let b=document.createElement('button');b.type='button';b.className='suggestion';b.innerHTML=`<span class="suggestionText"><b>${cleanPublicText(f.name)}</b><small>최근 바코드 제품${cleanMaker(f.maker)?' · '+cleanMaker(f.maker):''} · ${Math.round(num(f.calories))} kcal</small></span><span class="suggestionPlus">+</span>`;b.onclick=()=>chooseExternalFood(row,f);box.appendChild(b)});
+  box.hidden=!box.children.length;
+  if(norm(q).length>=2){
+    clearTimeout(publicFoodTimer);
+    const seq=Number(row.dataset.publicFoodSeq||0)+1;row.dataset.publicFoodSeq=seq;
+    let loading=document.createElement('div');loading.className='suggestion publicLoading';loading.innerHTML='<span class="suggestionText"><b>식약처 DB 검색 중…</b><small>공공 영양성분 DB에서 찾고 있어요.</small></span>';box.appendChild(loading);box.hidden=false;
+    publicFoodTimer=setTimeout(()=>appendPublicSuggestions(row,q,seq),300);
+  }
+}
+
 function addFood(f={}){let d=document.createElement('div');d.className='foodRow';d.innerHTML=`<button type="button" class="removeFood">×</button><div class="foodTop"><div class="foodNameWrap"><input class="name" placeholder="음식명 또는 메뉴를 검색하세요" autocomplete="off" value="${f.name||''}"><div class="suggestions" hidden></div></div><div class="amountInput"><input class="grams" type="number" min="0" placeholder="100" value="${f.grams||''}"><span class="amountUnit">g</span></div></div><div class="portionBar"><select class="portion" hidden></select><span class="dbBadge" hidden>영양 자동 계산</span></div><div class="nutrition"><label class="nutriField"><span>칼로리</span><div><input class="calories" type="number" min="0" step="1" placeholder="0" value="${f.calories??''}"><em>kcal</em></div></label><label class="nutriField"><span>탄수화물</span><div><input class="carbs" type="number" min="0" step="0.1" placeholder="0.0" value="${f.carbs??''}"><em>g</em></div></label><label class="nutriField"><span>단백질</span><div><input class="protein" type="number" min="0" step="0.1" placeholder="0.0" value="${f.protein??''}"><em>g</em></div></label><label class="nutriField"><span>지방</span><div><input class="fat" type="number" min="0" step="0.1" placeholder="0.0" value="${f.fat??''}"><em>g</em></div></label></div>`;$('#foods').appendChild(d);let name=d.querySelector('.name'),g=d.querySelector('.grams'),p=d.querySelector('.portion');name.oninput=()=>{delete d.dataset.dbIndex;delete d.dataset.externalFood;p.hidden=true;d.querySelector('.dbBadge').hidden=true;showSuggestions(d,name.value)};name.onfocus=()=>showSuggestions(d,name.value);g.oninput=()=>d.dataset.externalFood?calcExternalRow(d):calcRow(d);p.onchange=()=>{g.value=p.value;calcRow(d)};d.querySelector('.removeFood').onclick=()=>document.querySelectorAll('.foodRow').length>1?d.remove():null;if(f.name){let ex=FOOD_DB.find(x=>norm(x.name)===norm(f.name));if(ex&&!f.calories)chooseFood(d,ex)}}
 document.addEventListener('click',e=>{if(!e.target.closest('.foodNameWrap'))document.querySelectorAll('.suggestions').forEach(x=>x.hidden=true)});
 let photoPreviewUrl='';
