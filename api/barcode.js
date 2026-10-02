@@ -2,7 +2,17 @@ const num=v=>{const m=String(v??'').replace(/,/g,'').match(/-?\\d+(?:\\.\\d+)?/)
 const txt=v=>String(v??'').trim(), norm=s=>txt(s).toLowerCase().replace(/\\([^)]*\\)/g,'').replace(/[^0-9a-z가-힣]/g,'');
 const pick=(o,...ks)=>{for(const k of ks)if(o?.[k]!=null&&txt(o[k]))return o[k];return ''};
 const hasKorean=s=>/[가-힣]/.test(txt(s));
-function amountUnit(v){const m=txt(v).match(/(\\d+(?:\\.\\d+)?)\\s*(ml|mL|㎖|g|kg|l)\\b/i);if(!m)return{amount:0,unit:''};let amount=+m[1],unit=m[2].toLowerCase();if(unit==='kg'){amount*=1000;unit='g'}if(unit==='l'){amount*=1000;unit='ml'}return{amount,unit:unit==='ml'?'mL':'g'}}
+function amountUnit(v){
+  const s=txt(v).replace(/,/g,'');
+  const m=s.match(/(\d+(?:\.\d+)?)\s*(㎖|ml|mℓ|g|kg|㎏|l|ℓ)/i);
+  if(!m)return {amount:0,unit:''};
+  let amount=Number(m[1]);
+  const raw=String(m[2]).toLowerCase();
+  if(raw==='kg'||raw==='㎏')return {amount:amount*1000,unit:'g'};
+  if(raw==='l'||raw==='ℓ')return {amount:amount*1000,unit:'mL'};
+  if(raw==='ml'||raw==='㎖'||raw==='mℓ')return {amount,unit:'mL'};
+  return {amount,unit:'g'};
+}
 function packageAmount(quantity,name){
   const q=amountUnit(quantity);
   if(q.amount&&q.unit)return q;
