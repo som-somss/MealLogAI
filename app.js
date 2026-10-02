@@ -284,7 +284,44 @@ function norm(s){return(s||'').toLowerCase().replace(/\s/g,'')}function findFood
 function calcRow(row){const idx=+row.dataset.dbIndex;if(!Number.isInteger(idx)||!FOOD_DB[idx])return;const f=FOOD_DB[idx],g=Math.max(0,+row.querySelector('.grams').value||0),r=g/100;row.querySelector('.calories').value=Math.round(f.calories*r);row.querySelector('.carbs').value=(f.carbs*r).toFixed(1);row.querySelector('.protein').value=(f.protein*r).toFixed(1);row.querySelector('.fat').value=(f.fat*r).toFixed(1)}
 function chooseFood(row,f){const idx=FOOD_DB.indexOf(f);row.dataset.dbIndex=idx;row.querySelector('.name').value=f.name;const p=row.querySelector('.portion');p.innerHTML='';(f.portions||[['100g',100]]).forEach(([n,g])=>{let o=document.createElement('option');o.value=g;o.textContent=`${n} (${g}g)`;p.appendChild(o)});p.hidden=false;row.querySelector('.dbBadge').hidden=false;row.querySelector('.grams').value=(f.portions?.[0]?.[1]||100);row.querySelector('.suggestions').hidden=true;calcRow(row)}
 let publicFoodTimer=0,publicFoodSeq=0;
-const BARCODE_CACHE_KEY='mealLogAI_barcode_products_v4';
+const BARCODE_LINK_KEY='mealLogAI_barcode_official_links_v1';
+function barcodeLinks(){try{return JSON.parse(localStorage.getItem(BARCODE_LINK_KEY)||'{}')}catch(_){return{}}}
+function linkedBarcodeProduct(code){
+  const x=barcodeLinks()[String(code||'')];
+  return x?canonicalProduct(x):null;
+}
+function saveBarcodeOfficialLink(barcodeProduct,officialFood){
+  const code=String(barcodeProduct?.code||'').replace(/\D/g,'');
+  if(!code||officialFood?.source!=='mfds')return null;
+  const bp=canonicalProduct(barcodeProduct), of=canonicalProduct(officialFood);
+  // 실제 포장 용량/단위는 바코드 제품을 유지하고 영양 기준/값만 식약처에서 가져옵니다.
+  const linked=canonicalProduct({
+    ...of,
+    code,
+    name:bp.name||of.name,
+    maker:of.maker||bp.maker,
+    barcodeName:bp.barcodeName||bp.name,
+    barcodeMaker:bp.barcodeMaker||bp.maker,
+    quantity:bp.quantity,
+    productAmount:bp.productAmount,
+    displayAmount:bp.displayAmount,
+    unit:bp.unit,
+    nutritionBase:of.nutritionBase,
+    nutritionUnit:of.nutritionUnit,
+    calories:of.calories,
+    carbs:of.carbs,
+    protein:of.protein,
+    fat:of.fat,
+    source:'mfds+linked',
+    matchedOfficial:true,
+    matchConfidence:'user-linked'
+  });
+  const all=barcodeLinks();all[code]=linked;
+  localStorage.setItem(BARCODE_LINK_KEY,JSON.stringify(all));
+  rememberBarcodeProduct(linked);
+  return linked;
+}
+
 function barcodeCache(){try{return JSON.parse(localStorage.getItem(BARCODE_CACHE_KEY)||'[]')}catch(_){return[]}}
 function canonicalProduct(f={}){const unit=publicUnit(f),amount=Math.max(1,num(f.productAmount)||num(f.displayAmount)||num(f.foodSize)||num(f.weight)||100),base=Math.max(1,num(f.nutritionBase)||num(f.weight)||100);return {...f,code:String(f.code||f.barcode||''),name:cleanPublicText(f.name)||'제품',maker:cleanMaker(f.maker),unit,productAmount:amount,displayAmount:amount,nutritionBase:base,nutritionUnit:f.nutritionUnit||unit,calories:num(f.calories),carbs:num(f.carbs),protein:num(f.protein),fat:num(f.fat)}}
 function rememberBarcodeProduct(f){f=canonicalProduct(f);if(!f?.name)return;let a=barcodeCache(),i=a.findIndex(x=>(f.code&&x.code===f.code)||norm(x.name)===norm(f.name));if(i>=0)f={...a[i],...f};a=a.filter((x,j)=>j!==i&&(f.code?x.code!==f.code:true)&&norm(x.name)!==norm(f.name));a.unshift(f);localStorage.setItem(BARCODE_CACHE_KEY,JSON.stringify(a.slice(0,80)))}
@@ -294,12 +331,7 @@ function cleanPublicText(v){return String(v||'').replace(/^\s*[?？·•|]+\s*/,
 function cleanMaker(v){let parts=cleanPublicText(v).split(/[,/·|]+/).map(x=>x.trim()).filter(Boolean),out=[];for(const x of parts){if(!out.some(y=>norm(y)===norm(x)))out.push(x)}return out.slice(0,2).join(' · ')}
 function publicUnit(f){const t=`${f.unit||''} ${f.foodSize||''} ${f.quantity||''} ${f.basis||''}`.toLowerCase();if(/ml|㎖|밀리리터/.test(t))return 'mL';if(/kg|킬로그램/.test(t))return 'kg';return 'g'}
 function calcExternalRow(row){let f;try{f=JSON.parse(row.dataset.externalFood||'null')}catch(_){f=null}if(!f)return;const amount=Math.max(0,num(row.querySelector('.grams').value)),base=Math.max(1,num(f.nutritionBase)||num(f.weight)||100),r=amount/base;row.querySelector('.calories').value=Math.round(num(f.calories)*r);row.querySelector('.carbs').value=(num(f.carbs)*r).toFixed(1);row.querySelector('.protein').value=(num(f.protein)*r).toFixed(1);row.querySelector('.fat').value=(num(f.fat)*r).toFixed(1)}
-function chooseExternalFood(row,f){
-  delete row.dataset.dbIndex; f=canonicalProduct(f);const name=f.name,maker=f.maker;row.querySelector('.name').value=name+(maker?` · ${maker}`:'');
-  const unitName=f.unit,amount=f.displayAmount,base=f.nutritionBase,nutUnit=f.nutritionUnit||unitName;row.dataset.externalFood=JSON.stringify(f);row.querySelector('.grams').value=amount;row.querySelector('.grams').title=`섭취량: ${amount}${unitName} · 영양 기준: ${base}${nutUnit}`;
-  const unit=row.querySelector('.amountUnit');if(unit)unit.textContent=unitName;calcExternalRow(row);
-  row.querySelector('.portion').hidden=true;const badge=row.querySelector('.dbBadge');badge.hidden=false;const src=f.source==='mfds'?'식약처 DB':f.source==='mfds+off'?'식약처+바코드 DB':'제품 DB';badge.textContent=`${src} · ${amount}${unitName} 입력 · 영양 ${base}${nutUnit} 기준`;row.querySelector('.suggestions').hidden=true;
-}
+function chooseExternalFood(row,f){delete row.dataset.dbIndex;f=canonicalProduct(f);if(currentBarcodeProduct&&f.source==='mfds'&&currentBarcodeProduct.code){const linked=saveBarcodeOfficialLink(currentBarcodeProduct,f);if(linked){f=linked;currentBarcodeProduct=linked}}const name=f.name,maker=f.maker;row.querySelector('.name').value=name+(maker?` · ${maker}`:'');const unitName=f.unit,amount=f.displayAmount,base=f.nutritionBase,nutUnit=f.nutritionUnit||unitName;row.dataset.externalFood=JSON.stringify(f);row.querySelector('.grams').value=amount;row.querySelector('.grams').title=`섭취량: ${amount}${unitName} · 영양 기준: ${base}${nutUnit}`;const unit=row.querySelector('.amountUnit');if(unit)unit.textContent=unitName;calcExternalRow(row);row.querySelector('.portion').hidden=true;const badge=row.querySelector('.dbBadge');badge.hidden=false;const src=f.source==='mfds'?'식약처 DB':f.source==='mfds+linked'?'식약처 DB · 바코드 연결':f.source==='mfds+off'?'식약처+바코드 DB':'제품 DB';badge.textContent=`${src} · ${amount}${unitName} 입력 · 영양 ${base}${nutUnit} 기준`;row.querySelector('.suggestions').hidden=true;}
 // v6.9.3 replacement block: replace appendPublicSuggestions + showSuggestions in app.js
 async function appendPublicSuggestions(row,q,seq){
   const box=row.querySelector('.suggestions');
@@ -377,10 +409,10 @@ const modeSearchBtn=$('#modeSearch'), modePhotoBtn=$('#modePhoto'), modeAIBtn=$(
 if(modeSearchBtn) modeSearchBtn.onclick=()=>setEntryMode('search');
 if(modePhotoBtn) modePhotoBtn.onclick=()=>setEntryMode('photo');
 if(modeAIBtn) modeAIBtn.onclick=()=>setEntryMode('ai');
-let barcodeStream=null,barcodeLoop=0;
+let barcodeStream=null,barcodeLoop=0,currentBarcodeProduct=null;
 function stopBarcodeCamera(){barcodeLoop++;if(barcodeStream){barcodeStream.getTracks().forEach(t=>t.stop());barcodeStream=null}const v=$('#barcodeVideo');if(v){v.pause();v.srcObject=null;v.hidden=true}}
 function closeBarcode(){stopBarcodeCamera();$('#barcodePanel').hidden=true}
-async function lookupBarcode(code){code=String(code||'').replace(/\D/g,'');if(code.length<8){$('#barcodeStatus').textContent='바코드 번호를 8자리 이상 입력해주세요.';return}$('#barcodeStatus').textContent='제품을 찾는 중이에요…';try{const r=await fetch(`/api/barcode?code=${encodeURIComponent(code)}&t=${Date.now()}`,{cache:'no-store'});const d=await r.json();if(!r.ok||!d.found){$('#barcodeStatus').textContent='제품을 찾지 못했어요. 아래 음식 검색에서 제품명을 검색해 연결해주세요.';return}let row=document.querySelector('#foods .foodRow:last-child');if(!row){addFood();row=document.querySelector('#foods .foodRow:last-child')}const product=canonicalProduct({...d,name:d.name||`바코드 ${code}`,maker:d.maker});rememberBarcodeProduct(product);chooseExternalFood(row,product);$('#barcodeStatus').textContent=d.matchedOfficial?`${d.name||'제품'} · 식약처 DB와 연결했어요.`:`${d.name||'제품'}을 불러왔어요. 식약처 자동 매칭 결과가 없으면 제품명을 직접 검색해 선택할 수 있어요.`;setTimeout(closeBarcode,500)}catch(_){$('#barcodeStatus').textContent='바코드 조회 중 오류가 발생했어요.'}}
+async function lookupBarcode(code){code=String(code||'').replace(/\D/g,'');if(code.length<8){$('#barcodeStatus').textContent='바코드 번호를 8자리 이상 입력해주세요.';return}$('#barcodeStatus').textContent='제품을 찾는 중이에요…';try{const saved=linkedBarcodeProduct(code);if(saved){currentBarcodeProduct=saved;rememberBarcodeProduct(saved);let row=document.querySelector('#foods .foodRow:last-child');if(!row){addFood();row=document.querySelector('#foods .foodRow:last-child')}chooseExternalFood(row,saved);$('#barcodeStatus').textContent=`${saved.name||'제품'} · 저장된 식약처 영양정보를 불러왔어요.`;setTimeout(closeBarcode,500);return}const r=await fetch(`/api/barcode?code=${encodeURIComponent(code)}&t=${Date.now()}`,{cache:'no-store'});const d=await r.json();if(!r.ok||!d.found){currentBarcodeProduct=null;$('#barcodeStatus').textContent='제품을 찾지 못했어요. 아래 음식 검색에서 제품명을 검색해 연결해주세요.';return}let row=document.querySelector('#foods .foodRow:last-child');if(!row){addFood();row=document.querySelector('#foods .foodRow:last-child')}const product=canonicalProduct({...d,code,name:d.name||`바코드 ${code}`,maker:d.maker});currentBarcodeProduct=product;rememberBarcodeProduct(product);chooseExternalFood(row,product);$('#barcodeStatus').textContent=d.matchedOfficial?`${d.name||'제품'} · 식약처 DB와 연결했어요.`:`${d.name||'제품'}을 불러왔어요. 제품명을 검색해서 정확한 식약처 제품을 한 번 선택해주세요.`;setTimeout(closeBarcode,500)}catch(_){currentBarcodeProduct=null;$('#barcodeStatus').textContent='바코드 조회 중 오류가 발생했어요.'}}
 async function openBarcode(){const p=$('#barcodePanel');p.hidden=false;$('#barcodeStatus').textContent='카메라로 바코드를 비추거나 번호를 직접 입력하세요.';if(!('BarcodeDetector'in window)){ $('#barcodeStatus').textContent='이 기기에서는 자동 스캔을 지원하지 않을 수 있어요. 바코드 번호를 직접 입력해주세요.';return }try{const detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e']});barcodeStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}});const v=$('#barcodeVideo');v.srcObject=barcodeStream;v.hidden=false;await v.play();const my=++barcodeLoop;const scan=async()=>{if(my!==barcodeLoop)return;try{const codes=await detector.detect(v);if(codes[0]?.rawValue){$('#barcodeInput').value=codes[0].rawValue;await lookupBarcode(codes[0].rawValue);return}}catch(_){}requestAnimationFrame(scan)};scan()}catch(_){$('#barcodeStatus').textContent='카메라를 열 수 없어요. 바코드 번호를 직접 입력해주세요.'}}
 $('#barcodeBtn').onclick=openBarcode;$('#barcodeClose').onclick=closeBarcode;$('#barcodeLookup').onclick=()=>lookupBarcode($('#barcodeInput').value);$('#barcodeInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();lookupBarcode(e.target.value)}});
 $('#mealType').addEventListener('change',updateMealSearchPlaceholder);
