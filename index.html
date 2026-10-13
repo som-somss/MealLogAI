@@ -85,9 +85,9 @@
 <label>비밀번호<input id="authPassword" type="password" autocomplete="current-password" minlength="6" placeholder="6자 이상" required></label>
 <p id="authMessage" class="status"></p>
 <div class="authButtons"><button type="submit" id="loginBtn" class="ai">로그인</button><button type="button" id="signupBtn" class="secondary">회원가입</button></div>
-<p class="hint">회원가입 후 확인 이메일이 오면 인증 링크를 눌러주세요.</p>
+<button type="button" id="forgotPasswordBtn" class="secondary">비밀번호를 잊으셨나요?</button><p class="hint">회원가입 후 확인 이메일이 오면 인증 링크를 눌러주세요.</p>
 </div>
-<div id="signedInPanel" hidden>
+<div id="passwordRecoveryPanel" hidden><p>새 비밀번호를 입력해주세요.</p><label>새 비밀번호<input id="newPassword" type="password" minlength="6" autocomplete="new-password"></label><label>새 비밀번호 확인<input id="newPasswordConfirm" type="password" minlength="6" autocomplete="new-password"></label><p id="passwordRecoveryMessage" class="status"></p><button type="button" id="updatePasswordBtn" class="ai">비밀번호 변경</button></div><div id="signedInPanel" hidden>
 <div class="accountCard"><small>로그인 계정</small><b id="accountEmail"></b><span id="syncState">동기화 준비</span></div>
 <button type="button" id="syncNowBtn" class="ai">지금 동기화</button>
 <button type="button" id="logoutBtn" class="secondary">로그아웃</button>
@@ -121,4 +121,4 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/supabase-config.js?v=681"></script>
 <script src="/app.js?v=691"></script>
-<script src="/cloud.js?v=695"></script></body></html>
+<script src="/cloud.js?v=696"></script></body></html>

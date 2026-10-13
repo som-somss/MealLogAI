@@ -8,11 +8,11 @@
     return;
   }
   const sb=window.supabase.createClient(window.MEALLOG_SUPABASE_URL,window.MEALLOG_SUPABASE_KEY);
-  let user=null, syncing=false, syncTimer=null;
+  let user=null, syncing=false, syncTimer=null, recoveringPassword=false;
   const originalSave=save;
   save=function(){ originalSave(); if(user){clearTimeout(syncTimer);syncTimer=setTimeout(()=>syncAll(false),700)} };
   function setUI(){
-    const signed=!!user; document.querySelector('#signedOutPanel').hidden=signed;document.querySelector('#signedInPanel').hidden=!signed;
+    const signed=!!user; document.querySelector('#signedOutPanel').hidden=signed||recoveringPassword;document.querySelector('#signedInPanel').hidden=!signed||recoveringPassword;document.querySelector('#passwordRecoveryPanel').hidden=!recoveringPassword;
     accountBtn.textContent=signed?(user.email?.split('@')[0]||'계정'):'로그인';accountBtn.classList.toggle('signedIn',signed);
     badge.textContent=signed?'동기화 켜짐':'로그인 필요';statusText.textContent=signed?'식사·체중·활동 기록을 이 계정에 동기화하고 있어요.':'로그인하면 식사·체중·활동 기록을 계정에 동기화합니다.';
     if(signed)document.querySelector('#accountEmail').textContent=user.email||'';
@@ -37,6 +37,8 @@
     }catch(err){console.error('회원가입 오류:',err);msg.textContent='회원가입 실패: '+(err?.message||'알 수 없는 오류');}
     finally{btn.disabled=false;}
   };
+  document.querySelector('#forgotPasswordBtn').onclick=async()=>{const email=document.querySelector('#authEmail').value.trim(),msg=document.querySelector('#authMessage'),btn=document.querySelector('#forgotPasswordBtn');if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){msg.textContent='이메일 주소를 먼저 입력해주세요.';return;}btn.disabled=true;msg.textContent='재설정 메일 요청 중…';try{const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});if(error)throw error;msg.textContent='재설정 메일을 요청했어요. 받은편지함과 스팸함을 확인해주세요.';}catch(err){msg.textContent='요청 실패: '+(err.message||'다시 시도해주세요.');}finally{btn.disabled=false;}};
+  document.querySelector('#updatePasswordBtn').onclick=async()=>{const a=document.querySelector('#newPassword').value,b=document.querySelector('#newPasswordConfirm').value,msg=document.querySelector('#passwordRecoveryMessage'),btn=document.querySelector('#updatePasswordBtn');if(a.length<6){msg.textContent='6자 이상 입력해주세요.';return;}if(a!==b){msg.textContent='비밀번호가 일치하지 않아요.';return;}btn.disabled=true;msg.textContent='변경 중…';try{const {error}=await sb.auth.updateUser({password:a});if(error)throw error;recoveringPassword=false;document.querySelector('#newPassword').value='';document.querySelector('#newPasswordConfirm').value='';await sb.auth.signOut();user=null;setUI();document.querySelector('#authMessage').textContent='비밀번호가 변경됐어요. 새 비밀번호로 로그인해주세요.';}catch(err){msg.textContent='변경 실패: '+(err.message||'다시 시도해주세요.');}finally{btn.disabled=false;}};
   document.querySelector('#logoutBtn').onclick=async()=>{await sb.auth.signOut();authDialog.close()};
   document.querySelector('#syncNowBtn').onclick=()=>syncAll(true);
   async function loadAndMerge(){
@@ -91,6 +93,6 @@ if(barcodeRemove.length){
       document.querySelector('#syncState').textContent='동기화 완료';if(showMessage)msg.textContent='클라우드 동기화가 완료됐어요.';
     }catch(e){console.error(e);document.querySelector('#syncState').textContent='동기화 오류';if(showMessage)msg.textContent=`동기화 오류: ${e.message}`;badge.textContent='확인 필요'}finally{syncing=false;document.body.classList.remove('syncing')}
   }
-  sb.auth.onAuthStateChange(async(event,session)=>{let was=user;user=session?.user||null;setUI();if(user&&!was)setTimeout(loadAndMerge,0)});
+  sb.auth.onAuthStateChange(async(event,session)=>{if(event==='PASSWORD_RECOVERY'){recoveringPassword=true;setUI();if(!authDialog.open)authDialog.showModal();document.querySelector('#passwordRecoveryMessage').textContent='새 비밀번호를 설정해주세요.';}let was=user;user=session?.user||null;setUI();if(user&&!was&&!recoveringPassword)setTimeout(loadAndMerge,0)});
   sb.auth.getSession().then(({data})=>{user=data.session?.user||null;setUI();if(user)loadAndMerge()});
 })();
