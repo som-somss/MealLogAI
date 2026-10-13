@@ -417,12 +417,76 @@ const modeSearchBtn=$('#modeSearch'), modePhotoBtn=$('#modePhoto'), modeAIBtn=$(
 if(modeSearchBtn) modeSearchBtn.onclick=()=>setEntryMode('search');
 if(modePhotoBtn) modePhotoBtn.onclick=()=>setEntryMode('photo');
 if(modeAIBtn) modeAIBtn.onclick=()=>setEntryMode('ai');
-let barcodeStream=null,barcodeLoop=0,currentBarcodeProduct=null;
-function stopBarcodeCamera(){barcodeLoop++;if(barcodeStream){barcodeStream.getTracks().forEach(t=>t.stop());barcodeStream=null}const v=$('#barcodeVideo');if(v){v.pause();v.srcObject=null;v.hidden=true}}
+let barcodeStream=null,barcodeLoop=0,currentBarcodeProduct=null,barcodeReader=null,barcodeDetected=false;
+function stopBarcodeCamera(){barcodeLoop++;if(barcodeReader){try{barcodeReader.reset()}catch(_){}barcodeReader=null}if(barcodeStream){barcodeStream.getTracks().forEach(t=>t.stop());barcodeStream=null}const v=$('#barcodeVideo');if(v){v.pause();v.srcObject=null;v.hidden=true}}
 function closeBarcode(){stopBarcodeCamera();$('#barcodePanel').hidden=true}
 async function autoLinkBarcodeFood(product){try{const raw=cleanPublicText(product?.name||'');const q=raw.replace(/\b\d+(?:\.\d+)?\s*(?:ml|g|kg|l)\b/ig,'').trim();if(!q)return null;const r=await fetch(`/api/food-search?q=${encodeURIComponent(q)}&t=${Date.now()}`,{cache:'no-store'});const d=await r.json();const key=s=>norm(cleanPublicText(s)).replace(/[^a-z0-9가-힣]/g,'').replace(/\d+(?:ml|g|kg|l)$/i,'');const target=key(q);const matches=(d.items||[]).filter(x=>x.source==='mfds').map(x=>({x,k:key(x.name)})).filter(v=>v.k&&(v.k===target||target.includes(v.k)||v.k.includes(target))).sort((a,b)=>Math.abs(a.k.length-target.length)-Math.abs(b.k.length-target.length));return matches[0]?.x||null}catch(_){return null}}
 async function lookupBarcode(code){code=String(code||'').replace(/\D/g,'');if(code.length<8){$('#barcodeStatus').textContent='바코드 번호를 8자리 이상 입력해주세요.';return}$('#barcodeStatus').textContent='제품을 찾는 중이에요…';try{const deletedLocal=barcodeUserProducts()[code]?.deleted;const saved=linkedBarcodeProduct(code);if(saved){currentBarcodeProduct=saved;rememberBarcodeProduct(saved);let row=document.querySelector('#foods .foodRow:last-child');if(!row){addFood();row=document.querySelector('#foods .foodRow:last-child')}chooseExternalFood(row,saved);$('#barcodeStatus').textContent=`${saved.name||'제품'} · 저장된 식약처 영양정보를 불러왔어요.`;setTimeout(closeBarcode,500);return}const r=await fetch(`/api/barcode?code=${encodeURIComponent(code)}&t=${Date.now()}`,{cache:'no-store'});const d=await r.json();if(!r.ok||!d.found){currentBarcodeProduct=null;$('#barcodeStatus').textContent='제품을 찾지 못했어요. 아래 음식 검색에서 제품명을 검색해 연결해주세요.';return}let row=document.querySelector('#foods .foodRow:last-child');if(!row){addFood();row=document.querySelector('#foods .foodRow:last-child')}const product=canonicalProduct({...d,code,name:d.name||`바코드 ${code}`,maker:d.maker});const official=await autoLinkBarcodeFood(product);if(official){const linked=saveBarcodeOfficialLink(product,official);if(linked){currentBarcodeProduct=null;rememberBarcodeProduct(linked);chooseExternalFood(row,linked);$('#barcodeStatus').textContent=`${linked.name||'제품'} · 식약처 영양정보를 자동 연결했어요.`;setTimeout(closeBarcode,500);return}}currentBarcodeProduct=product;rememberBarcodeProduct(product);chooseExternalFood(row,product);$('#barcodeStatus').textContent=d.matchedOfficial?`${d.name||'제품'} · 식약처 DB와 연결했어요.`:`${d.name||'제품'}을 불러왔어요. 제품명을 검색해서 정확한 식약처 제품을 한 번 선택해주세요.`;setTimeout(closeBarcode,500)}catch(_){currentBarcodeProduct=null;$('#barcodeStatus').textContent='바코드 조회 중 오류가 발생했어요.'}}
-async function openBarcode(){const p=$('#barcodePanel');p.hidden=false;$('#barcodeStatus').textContent='카메라로 바코드를 비추거나 번호를 직접 입력하세요.';if(!('BarcodeDetector'in window)){ $('#barcodeStatus').textContent='이 기기에서는 자동 스캔을 지원하지 않을 수 있어요. 바코드 번호를 직접 입력해주세요.';return }try{const detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e']});barcodeStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}});const v=$('#barcodeVideo');v.srcObject=barcodeStream;v.hidden=false;await v.play();const my=++barcodeLoop;const scan=async()=>{if(my!==barcodeLoop)return;try{const codes=await detector.detect(v);if(codes[0]?.rawValue){$('#barcodeInput').value=codes[0].rawValue;await lookupBarcode(codes[0].rawValue);return}}catch(_){}requestAnimationFrame(scan)};scan()}catch(_){$('#barcodeStatus').textContent='카메라를 열 수 없어요. 바코드 번호를 직접 입력해주세요.'}}
+function loadBarcodeScannerLibrary(){
+  if(window.ZXing?.BrowserMultiFormatReader)return Promise.resolve();
+  if(window.mealBarcodeLibraryPromise)return window.mealBarcodeLibraryPromise;
+  window.mealBarcodeLibraryPromise=new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src='https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js';
+    script.onload=()=>window.ZXing?.BrowserMultiFormatReader?resolve():reject(new Error('스캐너 라이브러리 로드 실패'));
+    script.onerror=()=>reject(new Error('스캐너 라이브러리를 불러오지 못했어요'));
+    document.head.appendChild(script);
+  }).catch(e=>{window.mealBarcodeLibraryPromise=null;throw e});
+  return window.mealBarcodeLibraryPromise;
+}
+async function barcodeScanned(raw){
+  const code=String(raw||'').replace(/\D/g,'');
+  if(barcodeDetected||code.length<8)return;
+  barcodeDetected=true;
+  $('#barcodeInput').value=code;
+  $('#barcodeStatus').textContent='바코드 '+code+' 인식 완료! 제품을 찾고 있어요…';
+  stopBarcodeCamera();
+  await lookupBarcode(code);
+}
+async function openBarcode(){
+  const p=$('#barcodePanel');p.hidden=false;
+  barcodeDetected=false;
+  stopBarcodeCamera();
+  const ticket=barcodeLoop;
+  $('#barcodeStatus').textContent='카메라를 준비하고 있어요…';
+  const v=$('#barcodeVideo');
+  v.hidden=false;
+  try{
+    if(!navigator.mediaDevices?.getUserMedia)throw new Error('카메라를 사용할 수 없는 환경이에요');
+    // iPhone Safari and older browsers: ZXing camera scanner fallback.
+    // The native BarcodeDetector is used first where supported.
+    if('BarcodeDetector' in window){
+      try{
+        const formats=await BarcodeDetector.getSupportedFormats();
+        if(formats.includes('ean_13')||formats.includes('ean_8')){
+          const detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e'].filter(f=>formats.includes(f))});
+          barcodeStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}});
+          if(ticket!==barcodeLoop){stopBarcodeCamera();return}
+          v.srcObject=barcodeStream;await v.play();
+          $('#barcodeStatus').textContent='제품 바코드를 카메라 가운데에 맞춰주세요.';
+          const my=barcodeLoop;
+          const scan=async()=>{if(my!==barcodeLoop||barcodeDetected)return;try{
+            const codes=await detector.detect(v);
+            if(codes[0]?.rawValue){await barcodeScanned(codes[0].rawValue);return}
+          }catch(_){}if(my===barcodeLoop)requestAnimationFrame(scan)};
+          scan();return;
+        }
+      }catch(e){console.warn('기본 바코드 스캐너 실패, 대체 스캐너 사용:',e);stopBarcodeCamera()}
+    }
+    await loadBarcodeScannerLibrary();
+    if(!p.isConnected||p.hidden)return;
+    barcodeReader=new window.ZXing.BrowserMultiFormatReader();
+    $('#barcodeStatus').textContent='제품 바코드를 카메라 가운데에 맞춰주세요.';
+    await barcodeReader.decodeFromVideoDevice(null,v,(result,error)=>{
+      if(result&&!barcodeDetected)barcodeScanned(result.getText());
+    });
+  }catch(e){
+    console.error('바코드 카메라 오류:',e);
+    stopBarcodeCamera();
+    v.hidden=true;
+    $('#barcodeStatus').textContent='카메라 스캔을 시작하지 못했어요. Safari 카메라 권한과 인터넷 연결을 확인하거나 번호를 직접 입력해주세요.';
+  }
+}
 $('#barcodeBtn').onclick=openBarcode;$('#barcodeClose').onclick=closeBarcode;$('#barcodeLookup').onclick=()=>lookupBarcode($('#barcodeInput').value);$('#barcodeInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();lookupBarcode(e.target.value)}});
 $('#mealType').addEventListener('change',updateMealSearchPlaceholder);
 $('#editSteps').onclick=setSteps;document.querySelectorAll('[data-water]').forEach(b=>b.onclick=()=>addWater(+b.dataset.water));$('#undoWater').onclick=undoWater;
