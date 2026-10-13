@@ -41,6 +41,43 @@
   document.querySelector('#updatePasswordBtn').onclick=async()=>{const a=document.querySelector('#newPassword').value,b=document.querySelector('#newPasswordConfirm').value,msg=document.querySelector('#passwordRecoveryMessage'),btn=document.querySelector('#updatePasswordBtn');if(a.length<6){msg.textContent='6자 이상 입력해주세요.';return;}if(a!==b){msg.textContent='비밀번호가 일치하지 않아요.';return;}btn.disabled=true;msg.textContent='변경 중…';try{const {error}=await sb.auth.updateUser({password:a});if(error)throw error;recoveringPassword=false;document.querySelector('#newPassword').value='';document.querySelector('#newPasswordConfirm').value='';await sb.auth.signOut();user=null;setUI();document.querySelector('#authMessage').textContent='비밀번호가 변경됐어요. 새 비밀번호로 로그인해주세요.';}catch(err){msg.textContent='변경 실패: '+(err.message||'다시 시도해주세요.');}finally{btn.disabled=false;}};
   document.querySelector('#logoutBtn').onclick=async()=>{await sb.auth.signOut();authDialog.close()};
   document.querySelector('#syncNowBtn').onclick=()=>syncAll(true);
+  // Recover barcode corrections embedded in saved meals (including meals saved while logged out).
+  function recoverBarcodeFromMeals(){
+    const recovered={};
+    for(const meal of (state.meals||[]))for(const food of (meal.foods||[])){
+      const bp=food.barcodeProduct;
+      const code=String(bp?.code||bp?.barcode||'').replace(/\D/g,'');
+      if(code.length<8)continue;
+      const name=String(food.name||bp.name||'').split(' · ')[0].trim();
+      if(!name||name==='제품'||name==='음식')continue;
+      const amount=Number(food.grams)||Number(bp.productAmount)||Number(bp.displayAmount);
+      if(!(amount>0))continue;
+      const unit=bp.unit||'g',base=Number(bp.nutritionBase)||100;
+      const scale=base/amount;
+      const candidate={...bp,code,name,productAmount:amount,displayAmount:amount,unit,
+        nutritionBase:base,nutritionUnit:bp.nutritionUnit||unit,
+        calories:(Number(food.calories)||0)*scale,carbs:(Number(food.carbs)||0)*scale,
+        protein:(Number(food.protein)||0)*scale,fat:(Number(food.fat)||0)*scale,
+        source:'user-verified',verifiedAt:meal.time||'1970-01-01T00:00:00'};
+      if(!recovered[code]||String(meal.time||'')>String(recovered[code].verifiedAt||''))recovered[code]=candidate;
+    }
+    return recovered;
+  }
+  function productQuality(p){
+    if(!p)return -1;
+    let q=0;
+    if(p.name&&p.name!=='제품'&&p.name!=='음식')q+=3;
+    if(Number(p.productAmount||p.displayAmount)>0)q+=1;
+    if(p.unit==='mL')q+=2;
+    if(p.source==='user-verified')q+=1;
+    return q;
+  }
+  function bestProduct(a,b){
+    if(!a)return b;if(!b)return a;
+    const qa=productQuality(a),qb=productQuality(b);
+    if(Math.abs(qa-qb)>=2)return qa>qb?a:b;
+    return Date.parse(b.verifiedAt||0)>Date.parse(a.verifiedAt||0)?b:a;
+  }
   async function loadAndMerge(){
     if(!user)return;
   const [{data:meals},{data:weights},{data:acts},{data:barcodeRows}]=await Promise.all([
@@ -52,10 +89,13 @@
     const localMeals=new Map((state.meals||[]).map(x=>[x.id,x]));(meals||[]).forEach(r=>localMeals.set(r.id,{id:r.id,type:r.meal_type,time:r.meal_time,photo:r.photo_url||'',foods:r.foods||[],memo:r.memo||''}));state.meals=[...localMeals.values()];
     const localWeights=new Map((state.weights||[]).map(x=>[x.date,x]));(weights||[]).forEach(r=>localWeights.set(r.weight_date,{date:r.weight_date,value:+r.weight}));state.weights=[...localWeights.values()];
     state.activity=state.activity||{};(acts||[]).forEach(r=>{state.activity[r.activity_date]={steps:+r.steps||0,water:+r.water||0,waterHistory:[]}});
-    // Merge cloud verified products with local products; newer edits win.
+    // Merge recovered meal corrections, device edits and cloud edits without allowing
+    // generic placeholders to overwrite a verified product.
     const localVerified=barcodeUserProducts();
     const localLinks=barcodeLinks();
     const mergedVerified={...localVerified};
+    for(const [code,p] of Object.entries(recoverBarcodeFromMeals()))
+      mergedVerified[code]=bestProduct(mergedVerified[code],p);
     for(const r of (barcodeRows||[])){
       if(!r.barcode)continue;
       const code=String(r.barcode);
@@ -64,8 +104,7 @@
         calories:Number(r.calories),carbs:Number(r.carbs),protein:Number(r.protein),fat:Number(r.fat),
         nutritionBase:Number(r.nutrition_base),nutritionUnit:r.nutrition_unit,
         verifiedAt:r.updated_at,source:'user-verified'};
-      const local=localVerified[code];
-      if(!local || Date.parse(r.updated_at||0)>Date.parse(local.verifiedAt||0))mergedVerified[code]=cloudProduct;
+      mergedVerified[code]=bestProduct(mergedVerified[code],cloudProduct);
     }
     localStorage.setItem(BARCODE_USER_KEY,JSON.stringify(mergedVerified));
     for(const item of Object.values(mergedVerified))rememberBarcodeProduct(item);
@@ -81,6 +120,12 @@
       const weightRows=(state.weights||[]).map(w=>({user_id:user.id,weight_date:w.date,weight:+w.value}));if(weightRows.length){let {error}=await sb.from('weights').upsert(weightRows,{onConflict:'user_id,weight_date'});if(error)throw error}
       let {data:rw,error:rwe}=await sb.from('weights').select('id,weight_date').eq('user_id',user.id);if(rwe)throw rwe;let wk=new Set(weightRows.map(x=>x.weight_date)),wr=(rw||[]).filter(x=>!wk.has(x.weight_date)).map(x=>x.id);if(wr.length){let {error}=await sb.from('weights').delete().in('id',wr);if(error)throw error}
       const actRows=Object.entries(state.activity||{}).map(([date,a])=>({user_id:user.id,activity_date:date,steps:+a.steps||0,water:+a.water||0}));if(actRows.length){let {error}=await sb.from('daily_activity').upsert(actRows,{onConflict:'user_id,activity_date'});if(error)throw error}
+      // Recover verified product metadata from historical meals before upload.
+      const verifiedBeforeUpload=barcodeUserProducts();
+      const restored={...verifiedBeforeUpload};
+      for(const [code,p] of Object.entries(recoverBarcodeFromMeals()))restored[code]=bestProduct(restored[code],p);
+      localStorage.setItem(BARCODE_USER_KEY,JSON.stringify(restored));
+      for(const p of Object.values(restored))rememberBarcodeProduct(p);
       // Sync only user-verified barcode products; never delete remote products based on one device.
       const barcodeRowsUp=Object.entries(barcodeUserProducts()).map(([barcode,p])=>({
         user_id:user.id,barcode,product_name:p.name||'',maker:p.maker||'',
@@ -91,7 +136,17 @@
         updated_at:p.verifiedAt||new Date().toISOString()
       }));
       if(barcodeRowsUp.length){
-        const {error}=await sb.from('barcode_products').upsert(barcodeRowsUp,{onConflict:'user_id,barcode'});
+        const {data:remote,error:readError}=await sb.from('barcode_products').select('*').eq('user_id',user.id);
+        if(readError)throw readError;
+        const byCode=new Map((remote||[]).map(r=>[String(r.barcode),r]));
+        const safeRows=barcodeRowsUp.filter(p=>{
+          const r=byCode.get(String(p.barcode));
+          if(!r)return true;
+          if((!p.product_name||p.product_name==='제품')&&r.product_name&&r.product_name!=='제품')return false;
+          return Date.parse(p.updated_at||0)>=Date.parse(r.updated_at||0);
+        });
+        if(!safeRows.length){document.querySelector('#syncState').textContent='동기화 완료';if(showMessage)msg.textContent='클라우드 동기화가 완료됐어요.';return;}
+        const {error}=await sb.from('barcode_products').upsert(safeRows,{onConflict:'user_id,barcode'});
         if(error)throw error;
       }
       document.querySelector('#syncState').textContent='동기화 완료';if(showMessage)msg.textContent='클라우드 동기화가 완료됐어요.';
