@@ -90,9 +90,26 @@
 <div id="passwordRecoveryPanel" hidden><p>새 비밀번호를 입력해주세요.</p><label>새 비밀번호<input id="newPassword" type="password" minlength="6" autocomplete="new-password"></label><label>새 비밀번호 확인<input id="newPasswordConfirm" type="password" minlength="6" autocomplete="new-password"></label><p id="passwordRecoveryMessage" class="status"></p><button type="button" id="updatePasswordBtn" class="ai">비밀번호 변경</button></div><div id="signedInPanel" hidden>
 <div class="accountCard"><small>로그인 계정</small><b id="accountEmail"></b><span id="syncState">동기화 준비</span></div>
 <button type="button" id="syncNowBtn" class="ai">지금 동기화</button>
+<section id="barcodeManager" style="margin:14px 0;padding:12px;border:1px solid #ead6cc;border-radius:14px">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>내 바코드 제품 관리</b><button type="button" id="refreshBarcodeProducts" class="secondary" style="width:auto">새로고침</button></div>
+<p class="hint">수정·삭제한 제품정보는 같은 계정의 기기에 동기화돼요. 기존 식사 기록은 변경되지 않아요.</p>
+<div id="barcodeProductsList" style="max-height:250px;overflow:auto"></div><p id="barcodeManageMessage" class="status"></p>
+</section>
 <button type="button" id="logoutBtn" class="secondary">로그아웃</button>
 <p id="syncMessage" class="status"></p>
 </div>
+</form></dialog>
+<dialog id="barcodeEditDialog"><form id="barcodeEditForm" method="dialog" style="min-width:min(85vw,330px)">
+<div class="dialogHead"><button type="button" id="barcodeEditCancel">취소</button><b>바코드 제품 수정</b><button type="submit" class="saveTop">저장</button></div>
+<p id="barcodeEditCode" class="hint"></p>
+<label>제품명<input id="barcodeEditName" required></label>
+<label>용량<input id="barcodeEditAmount" type="number" min="0.01" step="any" required></label>
+<label>단위<select id="barcodeEditUnit"><option value="mL">mL</option><option value="g">g</option></select></label>
+<label>칼로리 (전체 용량 기준)<input id="barcodeEditCalories" type="number" min="0" step="any" required></label>
+<label>탄수화물 (g)<input id="barcodeEditCarbs" type="number" min="0" step="any" required></label>
+<label>단백질 (g)<input id="barcodeEditProtein" type="number" min="0" step="any" required></label>
+<label>지방 (g)<input id="barcodeEditFat" type="number" min="0" step="any" required></label>
+<p id="barcodeEditMessage" class="status"></p>
 </form></dialog>
 
 <div id="mealDialog" class="mealModal" hidden><div class="mealModalPanel"><form id="mealForm">
@@ -120,5 +137,5 @@
 <div class="cloudReady"><b>계정 · 클라우드 동기화</b><span id="cloudBadge">연결 준비</span><p id="cloudStatusText">로그인하면 식사·체중·활동 기록을 계정에 동기화합니다.</p><button type="button" id="cloudAccountBtn" class="secondary">로그인 / 계정 관리</button></div></form></dialog>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/supabase-config.js?v=681"></script>
-<script src="/app.js?v=691"></script>
-<script src="/cloud.js?v=698"></script></body></html>
+<script src="/app.js?v=6100"></script>
+<script src="/cloud.js?v=6100"></script></body></html>
