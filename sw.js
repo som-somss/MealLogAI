@@ -1,4 +1,4 @@
-const CACHE='meallog-v6101';
+const CACHE='meallog-v6102';
 const ASSETS=['/','/index.html','/app.js?v=6101','/cloud.js?v=6101','/supabase-config.js?v=684','/style.css?v=690','/manifest.webmanifest'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).catch(()=>{}))});
 self.addEventListener('activate',e=>e.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))),self.clients.claim()])));

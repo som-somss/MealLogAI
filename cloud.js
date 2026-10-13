@@ -63,7 +63,7 @@
   document.querySelector('#forgotPasswordBtn').onclick=async()=>{const email=document.querySelector('#authEmail').value.trim(),msg=document.querySelector('#authMessage'),btn=document.querySelector('#forgotPasswordBtn');if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){msg.textContent='이메일 주소를 먼저 입력해주세요.';return;}btn.disabled=true;msg.textContent='재설정 메일 요청 중…';try{const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});if(error)throw error;msg.textContent='재설정 메일을 요청했어요. 받은편지함과 스팸함을 확인해주세요.';}catch(err){msg.textContent='요청 실패: '+(err.message||'다시 시도해주세요.');}finally{btn.disabled=false;}};
   document.querySelector('#updatePasswordBtn').onclick=async()=>{const a=document.querySelector('#newPassword').value,b=document.querySelector('#newPasswordConfirm').value,msg=document.querySelector('#passwordRecoveryMessage'),btn=document.querySelector('#updatePasswordBtn');if(a.length<6){msg.textContent='6자 이상 입력해주세요.';return;}if(a!==b){msg.textContent='비밀번호가 일치하지 않아요.';return;}btn.disabled=true;msg.textContent='변경 중…';try{const {error}=await sb.auth.updateUser({password:a});if(error)throw error;recoveringPassword=false;document.querySelector('#newPassword').value='';document.querySelector('#newPasswordConfirm').value='';await sb.auth.signOut();user=null;setUI();document.querySelector('#authMessage').textContent='비밀번호가 변경됐어요. 새 비밀번호로 로그인해주세요.';}catch(err){msg.textContent='변경 실패: '+(err.message||'다시 시도해주세요.');}finally{btn.disabled=false;}};
   document.querySelector('#logoutBtn').onclick=async()=>{await sb.auth.signOut();authDialog.close()};
-  document.querySelector('#syncNowBtn').onclick=()=>syncAll(true);
+  document.querySelector('#syncNowBtn').onclick=()=>loadAndMerge(true);
   // Recover barcode corrections embedded in saved meals (including meals saved while logged out).
   function recoverBarcodeFromMeals(){
     const recovered={};
@@ -101,23 +101,41 @@
     if(Math.abs(qa-qb)>=2 && !a.deleted && !b.deleted)return qa>qb?a:b;
     return Date.parse(b.verifiedAt||0)>Date.parse(a.verifiedAt||0)?b:a;
   }
-  async function loadAndMerge(){
-    if(!user)return;
+  async function loadAndMerge(showMessage=false){
+    if(!user||syncing)return;
+    if(showMessage)document.querySelector('#syncMessage').textContent='클라우드 기록 불러오는 중…';
     try{await loadCloudSettings();}
     catch(e){console.error('목표 설정 불러오기 오류:',e);
       document.querySelector('#syncState').textContent='설정 동기화 오류';
       document.querySelector('#syncMessage').textContent='목표 설정 동기화 오류: '+e.message;
       return;
     }
-  const [{data:meals},{data:weights},{data:acts},{data:barcodeRows}]=await Promise.all([
+  const [{data:meals,error:mealLoadError},{data:weights,error:weightLoadError},{data:acts,error:actLoadError},{data:barcodeRows,error:barcodeLoadError}]=await Promise.all([
   sb.from('meals').select('*').eq('user_id',user.id),
   sb.from('weights').select('*').eq('user_id',user.id),
   sb.from('daily_activity').select('*').eq('user_id',user.id),
   sb.from('barcode_products').select('*').eq('user_id',user.id)
 ]);
+    const readError=mealLoadError||weightLoadError||actLoadError||barcodeLoadError;
+    if(readError){document.querySelector('#syncState').textContent='동기화 오류';document.querySelector('#syncMessage').textContent='클라우드 불러오기 실패: '+readError.message;return;}
     const localMeals=new Map((state.meals||[]).map(x=>[x.id,x]));(meals||[]).forEach(r=>localMeals.set(r.id,{id:r.id,type:r.meal_type,time:r.meal_time,photo:r.photo_url||'',foods:r.foods||[],memo:r.memo||''}));state.meals=[...localMeals.values()];
     const localWeights=new Map((state.weights||[]).map(x=>[x.date,x]));(weights||[]).forEach(r=>localWeights.set(r.weight_date,{date:r.weight_date,value:+r.weight}));state.weights=[...localWeights.values()];
-    state.activity=state.activity||{};(acts||[]).forEach(r=>{state.activity[r.activity_date]={steps:+r.steps||0,water:+r.water||0,waterHistory:[]}});
+    state.activity=state.activity||{};
+    (acts||[]).forEach(r=>{
+      const date=r.activity_date, local=state.activity[date]||{};
+      const localWater=Math.max(0,Number(local.water)||0);
+      const cloudWater=Math.max(0,Number(r.water)||0);
+      const water=Math.max(localWater,cloudWater);
+      const history=Array.isArray(local.waterHistory)?[...local.waterHistory]:[];
+      // Keep the phone's original water entries; reconstruct a single entry on
+      // a second device so its displayed total and undo action both work.
+      state.activity[date]={
+        steps:Math.max(Number(local.steps)||0,Number(r.steps)||0),
+        water,
+        waterHistory:localWater===water && history.length?history:(water>0?[water]:[])
+      };
+    });
+    if(typeof renderActivity==='function')renderActivity();
     // Merge recovered meal corrections, device edits and cloud edits without allowing
     // generic placeholders to overwrite a verified product.
     const localVerified=barcodeUserProducts();
@@ -143,7 +161,7 @@
     for(const item of Object.values(mergedVerified))if(!item.deleted)rememberBarcodeProduct(item);
     purgeDeletedCaches(mergedVerified);renderBarcodeProducts();
     localStorage.setItem(BARCODE_LINK_KEY,JSON.stringify(localLinks));
-    originalSave();await syncAll(false);
+    originalSave();await syncAll(showMessage);
   }
   async function syncAll(showMessage=true){
     if(!user||syncing)return;syncing=true;document.body.classList.add('syncing');let msg=document.querySelector('#syncMessage');if(showMessage)msg.textContent='동기화 중…';
@@ -154,12 +172,41 @@
         water_goal:Number(state.waterGoal)||2000};
       const {error:settingsError}=await sb.from('user_settings').upsert(settingsRow,{onConflict:'user_id'});
       if(settingsError)throw settingsError;
+      // Read and merge remote meals before writing. Never infer deletions from absence
+      // on a device: a phone and PC may have different local snapshots.
+      const {data:cloudMeals,error:cloudMealError}=await sb.from('meals').select('*').eq('user_id',user.id);
+      if(cloudMealError)throw cloudMealError;
+      const mergedMeals=new Map((cloudMeals||[]).map(r=>[r.id,{id:r.id,type:r.meal_type,time:r.meal_time,photo:r.photo_url||'',foods:r.foods||[],memo:r.memo||''}]));
+      for(const m of (state.meals||[]))mergedMeals.set(m.id,m);
+      state.meals=[...mergedMeals.values()];
+      originalSave();
       const mealRows=(state.meals||[]).map(m=>({id:m.id,user_id:user.id,meal_date:(m.time||'').slice(0,10),meal_type:m.type||'',meal_time:m.time||null,photo_url:m.photo||null,foods:m.foods||[],memo:m.memo||null}));
       if(mealRows.length){let {error}=await sb.from('meals').upsert(mealRows);if(error)throw error}
-      let {data:remoteMeals,error:rme}=await sb.from('meals').select('id').eq('user_id',user.id);if(rme)throw rme;let keep=new Set(mealRows.map(x=>x.id)),remove=(remoteMeals||[]).filter(x=>!keep.has(x.id)).map(x=>x.id);if(remove.length){let {error}=await sb.from('meals').delete().in('id',remove);if(error)throw error}
+      // No destructive cleanup: missing local records must not delete cloud meals.
       const weightRows=(state.weights||[]).map(w=>({user_id:user.id,weight_date:w.date,weight:+w.value}));if(weightRows.length){let {error}=await sb.from('weights').upsert(weightRows,{onConflict:'user_id,weight_date'});if(error)throw error}
-      let {data:rw,error:rwe}=await sb.from('weights').select('id,weight_date').eq('user_id',user.id);if(rwe)throw rwe;let wk=new Set(weightRows.map(x=>x.weight_date)),wr=(rw||[]).filter(x=>!wk.has(x.weight_date)).map(x=>x.id);if(wr.length){let {error}=await sb.from('weights').delete().in('id',wr);if(error)throw error}
-      const actRows=Object.entries(state.activity||{}).map(([date,a])=>({user_id:user.id,activity_date:date,steps:+a.steps||0,water:+a.water||0}));if(actRows.length){let {error}=await sb.from('daily_activity').upsert(actRows,{onConflict:'user_id,activity_date'});if(error)throw error}
+      // Never delete cloud weights merely because they are missing locally.
+      // Merge activity totals BEFORE uploading, so a PC with zero water cannot
+      // overwrite the phone's water record. This version favors preservation;
+      // cross-device decreases/undo are not synchronized yet.
+      const {data:remoteActs,error:remoteActError}=await sb.from('daily_activity').select('*').eq('user_id',user.id);
+      if(remoteActError)throw remoteActError;
+      state.activity=state.activity||{};
+      for(const r of (remoteActs||[])){
+        const date=r.activity_date, local=state.activity[date]||{};
+        const localWater=Math.max(0,Number(local.water)||0);
+        const cloudWater=Math.max(0,Number(r.water)||0);
+        const water=Math.max(localWater,cloudWater);
+        const history=Array.isArray(local.waterHistory)?[...local.waterHistory]:[];
+        state.activity[date]={
+          steps:Math.max(Number(local.steps)||0,Number(r.steps)||0),
+          water,
+          waterHistory:localWater===water && history.length?history:(water>0?[water]:[])
+        };
+      }
+      originalSave();
+      if(typeof renderActivity==='function')renderActivity();
+      const actRows=Object.entries(state.activity||{}).map(([date,a])=>({user_id:user.id,activity_date:date,steps:+a.steps||0,water:+a.water||0}));
+      if(actRows.length){let {error}=await sb.from('daily_activity').upsert(actRows,{onConflict:'user_id,activity_date'});if(error)throw error}
       // Recover verified product metadata from historical meals before upload.
       const verifiedBeforeUpload=barcodeUserProducts();
       const restored={...verifiedBeforeUpload};
