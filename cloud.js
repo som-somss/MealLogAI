@@ -52,12 +52,24 @@
     const localMeals=new Map((state.meals||[]).map(x=>[x.id,x]));(meals||[]).forEach(r=>localMeals.set(r.id,{id:r.id,type:r.meal_type,time:r.meal_time,photo:r.photo_url||'',foods:r.foods||[],memo:r.memo||''}));state.meals=[...localMeals.values()];
     const localWeights=new Map((state.weights||[]).map(x=>[x.date,x]));(weights||[]).forEach(r=>localWeights.set(r.weight_date,{date:r.weight_date,value:+r.weight}));state.weights=[...localWeights.values()];
     state.activity=state.activity||{};(acts||[]).forEach(r=>{state.activity[r.activity_date]={steps:+r.steps||0,water:+r.water||0,waterHistory:[]}});
-   const cloudBarcodeLinks={};
-(barcodeRows||[]).forEach(r=>{
-  if(r.barcode&&r.product_data)cloudBarcodeLinks[String(r.barcode)]=r.product_data;
-});
-const localBarcodeLinks=barcodeLinks();
-localStorage.setItem(BARCODE_LINK_KEY,JSON.stringify({...localBarcodeLinks,...cloudBarcodeLinks}));
+    // Merge cloud verified products with local products; newer edits win.
+    const localVerified=barcodeUserProducts();
+    const localLinks=barcodeLinks();
+    const mergedVerified={...localVerified};
+    for(const r of (barcodeRows||[])){
+      if(!r.barcode)continue;
+      const code=String(r.barcode);
+      const cloudProduct={code,name:r.product_name,maker:r.maker,
+        productAmount:Number(r.amount),displayAmount:Number(r.amount),unit:r.unit,
+        calories:Number(r.calories),carbs:Number(r.carbs),protein:Number(r.protein),fat:Number(r.fat),
+        nutritionBase:Number(r.nutrition_base),nutritionUnit:r.nutrition_unit,
+        verifiedAt:r.updated_at,source:'user-verified'};
+      const local=localVerified[code];
+      if(!local || Date.parse(r.updated_at||0)>Date.parse(local.verifiedAt||0))mergedVerified[code]=cloudProduct;
+    }
+    localStorage.setItem(BARCODE_USER_KEY,JSON.stringify(mergedVerified));
+    for(const item of Object.values(mergedVerified))rememberBarcodeProduct(item);
+    localStorage.setItem(BARCODE_LINK_KEY,JSON.stringify(localLinks));
     originalSave();await syncAll(false);
   }
   async function syncAll(showMessage=true){
@@ -69,27 +81,19 @@ localStorage.setItem(BARCODE_LINK_KEY,JSON.stringify({...localBarcodeLinks,...cl
       const weightRows=(state.weights||[]).map(w=>({user_id:user.id,weight_date:w.date,weight:+w.value}));if(weightRows.length){let {error}=await sb.from('weights').upsert(weightRows,{onConflict:'user_id,weight_date'});if(error)throw error}
       let {data:rw,error:rwe}=await sb.from('weights').select('id,weight_date').eq('user_id',user.id);if(rwe)throw rwe;let wk=new Set(weightRows.map(x=>x.weight_date)),wr=(rw||[]).filter(x=>!wk.has(x.weight_date)).map(x=>x.id);if(wr.length){let {error}=await sb.from('weights').delete().in('id',wr);if(error)throw error}
       const actRows=Object.entries(state.activity||{}).map(([date,a])=>({user_id:user.id,activity_date:date,steps:+a.steps||0,water:+a.water||0}));if(actRows.length){let {error}=await sb.from('daily_activity').upsert(actRows,{onConflict:'user_id,activity_date'});if(error)throw error}
-      const barcodeLinksNow=barcodeLinks();
-const barcodeRowsUp=Object.entries(barcodeLinksNow).map(([barcode,product_data])=>({
-  user_id:user.id,
-  barcode,
-  product_data
-}));
-if(barcodeRowsUp.length){
-  let {error}=await sb.from('barcode_products').upsert(
-    barcodeRowsUp,
-    {onConflict:'user_id,barcode'}
-  );
-  if(error)throw error;
-}
-      let {data:remoteBarcodes,error:rbe}=await sb.from('barcode_products').select('id,barcode').eq('user_id',user.id);
-if(rbe)throw rbe;
-const barcodeKeep=new Set(Object.keys(barcodeLinksNow));
-const barcodeRemove=(remoteBarcodes||[]).filter(x=>!barcodeKeep.has(String(x.barcode))).map(x=>x.id);
-if(barcodeRemove.length){
-  let {error}=await sb.from('barcode_products').delete().in('id',barcodeRemove);
-  if(error)throw error;
-}
+      // Sync only user-verified barcode products; never delete remote products based on one device.
+      const barcodeRowsUp=Object.entries(barcodeUserProducts()).map(([barcode,p])=>({
+        user_id:user.id,barcode,product_name:p.name||'',maker:p.maker||'',
+        amount:Number(p.productAmount||p.displayAmount||100),unit:p.unit||'g',
+        calories:Number(p.calories||0),carbs:Number(p.carbs||0),
+        protein:Number(p.protein||0),fat:Number(p.fat||0),
+        nutrition_base:Number(p.nutritionBase||100),nutrition_unit:p.nutritionUnit||p.unit||'g',
+        updated_at:p.verifiedAt||new Date().toISOString()
+      }));
+      if(barcodeRowsUp.length){
+        const {error}=await sb.from('barcode_products').upsert(barcodeRowsUp,{onConflict:'user_id,barcode'});
+        if(error)throw error;
+      }
       document.querySelector('#syncState').textContent='동기화 완료';if(showMessage)msg.textContent='클라우드 동기화가 완료됐어요.';
     }catch(e){console.error(e);document.querySelector('#syncState').textContent='동기화 오류';if(showMessage)msg.textContent=`동기화 오류: ${e.message}`;badge.textContent='확인 필요'}finally{syncing=false;document.body.classList.remove('syncing')}
   }
