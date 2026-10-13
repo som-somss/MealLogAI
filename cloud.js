@@ -20,7 +20,23 @@
   function openAuth(){setUI();document.querySelector('#authMessage').textContent='';document.querySelector('#syncMessage').textContent='';authDialog.showModal()}
   accountBtn.onclick=openAuth;cloudAccountBtn.onclick=openAuth;document.querySelector('#authClose').onclick=()=>authDialog.close();
   document.querySelector('#authForm').onsubmit=async e=>{e.preventDefault();let email=document.querySelector('#authEmail').value.trim(),password=document.querySelector('#authPassword').value,msg=document.querySelector('#authMessage');msg.textContent='로그인 중…';let {error}=await sb.auth.signInWithPassword({email,password});msg.textContent=error?`로그인 실패: ${error.message}`:'로그인했어요.'};
-  document.querySelector('#signupBtn').onclick=async()=>{let email=document.querySelector('#authEmail').value.trim(),password=document.querySelector('#authPassword').value,msg=document.querySelector('#authMessage');if(!email||password.length<6){msg.textContent='이메일과 6자 이상의 비밀번호를 입력해주세요.';return}msg.textContent='회원가입 중…';let {error}=await sb.auth.signUp({email,password,options:{emailRedirectTo:location.origin}});msg.textContent=error?`회원가입 실패: ${error.message}`:'가입 요청을 보냈어요. 이메일의 인증 링크를 눌러주세요.'};
+  document.querySelector('#signupBtn').onclick=async()=>{
+    const btn=document.querySelector('#signupBtn'), msg=document.querySelector('#authMessage');
+    const email=document.querySelector('#authEmail').value.trim(),password=document.querySelector('#authPassword').value;
+    msg.textContent='';
+    if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){msg.textContent='올바른 이메일 주소를 입력해주세요.';return;}
+    if(password.length<6){msg.textContent='비밀번호를 6자 이상 입력해주세요.';return;}
+    btn.disabled=true;msg.textContent='회원가입 요청 중…';
+    try{
+      const {data,error}=await Promise.race([
+        sb.auth.signUp({email,password,options:{emailRedirectTo:location.origin}}),
+        new Promise((_,reject)=>setTimeout(()=>reject(new Error('서버 응답이 지연되고 있어요. 인터넷 연결을 확인하고 다시 시도해주세요.')),15000))
+      ]);
+      if(error)throw error;
+      msg.textContent=data?.session?'회원가입 및 로그인에 성공했어요.':'가입 요청을 보냈어요. 이메일의 인증 링크를 확인해주세요.';
+    }catch(err){console.error('회원가입 오류:',err);msg.textContent='회원가입 실패: '+(err?.message||'알 수 없는 오류');}
+    finally{btn.disabled=false;}
+  };
   document.querySelector('#logoutBtn').onclick=async()=>{await sb.auth.signOut();authDialog.close()};
   document.querySelector('#syncNowBtn').onclick=()=>syncAll(true);
   async function loadAndMerge(){
