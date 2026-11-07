@@ -5,6 +5,7 @@ import {lookupFood} from '../coach-food-budget.js';
 import {createGenerator,previousIntent,resolveFollowUp,conversationContext,generationDiagnostic} from '../coach-generation.js';
 import {memoryRequest,memoryHelp} from '../coach-memory.js';
 import {editRequest,editChoice,resolveEdit} from '../coach-edit.js';
+import {batchRequest,resolveBatchEdit} from '../coach-batch.js';
 const cfg=readFileSync(new URL('../supabase-config.js',import.meta.url),'utf8');
 const database=cfg.match(/https:\/\/[a-z]+\.supabase\.co/)[0],publicKey=cfg.match(/sb_publishable_[a-zA-Z0-9_-]+/)[0];
 const uuid=v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
@@ -24,7 +25,7 @@ export function makeHandler(fetcher=fetch,env=process.env){return async(req,res)
   const user=await request('/auth/v1/user');if(!user?.id)return fail(401,'로그인을 확인해 주세요.');
   const prior=await request('/rest/v1/ai_coach_messages?select=conversation_id,content,metadata&user_id=eq.'+user.id+'&request_id=eq.'+body.request_id+'&role=eq.assistant');
   if(prior[0])return res.status(200).json({ok:true,conversation_id:prior[0].conversation_id,...prior[0].metadata,reply:prior[0].content});
-  let edit=editRequest(body.message,body.selected_date);
+  let edit=batchRequest(body.message,body.selected_date)||editRequest(body.message,body.selected_date);
   if (!edit && body.conversation_id && /^(?:선택\s*)?(?:[1-9]|10)(?:번)?[.!\s]*$/.test(body.message.trim())) {
    const query=new URLSearchParams({select:'role,content,metadata',user_id:'eq.'+user.id,conversation_id:'eq.'+body.conversation_id,order:'created_at.desc,role.asc',limit:'8'});
    edit=editChoice(body.message,await request('/rest/v1/ai_coach_messages?'+query),body.selected_date);
@@ -35,10 +36,11 @@ export function makeHandler(fetcher=fetch,env=process.env){return async(req,res)
     const mealQuery=new URLSearchParams({select:'id,meal_date,meal_type,meal_time,created_at,foods',user_id:'eq.'+user.id,meal_date:'eq.'+edit.day,order:'created_at.desc,id',limit:'101',...(edit.mealType?{meal_type:'eq.'+edit.mealType}:{})});
     const comboQuery=new URLSearchParams({select:'id,name,meal_type,foods,revision,approved_at',user_id:'eq.'+user.id,order:'id',limit:'501'});
     const [meals,combos]=await Promise.all([edit.scope==='combination'?[]:request('/rest/v1/meals?'+mealQuery),edit.scope==='meal'?[]:request('/rest/v1/meal_combinations?'+comboQuery)]);
-    result=resolveEdit(edit,meals,combos,siteFoods,body.selected_date);
+    result=(edit.operation==='batch'?resolveBatchEdit:resolveEdit)(edit,meals,combos,siteFoods,body.selected_date);
     if (!result.reply) {
      const changing=['add','remove','replace'].includes(result.operation);
-     const saved=await request('/rest/v1/rpc/'+(changing?'meallog_coach_change_foods':'meallog_coach_resize'),{p_conversation:body.conversation_id||null,p_request:body.request_id,p_question:body.message.trim(),p_edit:{meal:result.meal,combination:result.combination,...(changing?{operation:result.operation,food:result.food}:{})}});
+     const rpc=result.operation==='batch'?'meallog_coach_batch_edit':changing?'meallog_coach_change_foods':'meallog_coach_resize';
+     const saved=await request('/rest/v1/rpc/'+rpc,{p_conversation:body.conversation_id||null,p_request:body.request_id,p_question:body.message.trim(),p_edit:{meal:result.meal,combination:result.combination,...(changing?{operation:result.operation,food:result.food}:{})}});
      if (!saved?.ok || !saved.conversation_id || !saved.record_edit) throw Error('수정 결과를 확인하지 못했어요. 같은 질문으로 다시 시도해 주세요.');
      return res.status(200).json(saved);
     }

@@ -98,15 +98,15 @@ function resizeRequest(question, selectedDate, today) {
   return {day,mealType:types[0]||null,latest:/방금|마지막/.test(text),food:prefix,amount,unit,comboName,scope,requireCombo:scope==='combination'||/조합/.test(text)};
 }
 
-function foodMatches(food, query, catalog) {
+export function foodMatches(food, query, catalog) {
   const name = key(food.name?.split(' · ')[0]), q = key(query);
   if (name === q) return true;
   if (catalog.some(f=>key(f.name)===name && (f.aliases||[]).some(alias=>key(alias)===q))) return true;
   const fried = ['계란후라이','계란프라이','달걀후라이','달걀프라이'];
   return fried.includes(name) && fried.includes(q);
 }
-const foodUnit = food => ({ml:'mL'})[food.unit] || food.unit || food.barcodeProduct?.unit || 'g';
-function amountFor(food, request, catalog) {
+export const foodUnit = food => ({ml:'mL'})[food.unit] || food.unit || food.barcodeProduct?.unit || 'g';
+export function amountFor(food, request, catalog) {
   const unit = foodUnit(food);
   if (unit === request.unit) return request.amount;
   if (['g','mL'].includes(request.unit)) throw Error(`이 음식은 ${unit} 단위로 기록되어 있어요. 같은 단위의 양을 알려 주세요.`);
@@ -121,10 +121,10 @@ function amountFor(food, request, catalog) {
   if (!Number.isFinite(amount)||amount<0.001||amount>100000) throw Error('변경할 양을 확인해 주세요.');
   return amount;
 }
-function recipe(foods) {
+export function recipe(foods) {
   return JSON.stringify((foods||[]).map(f=>[key(f.name),key(f.manualBrand||f.barcodeProduct?.maker),foodUnit(f),Number(f.grams),...nutrients.map(n=>f[n]==null?null:Number(f[n]))]).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))));
 }
-function choicesReply(request, selectedDate, choices, message) {
+export function choicesReply(request, selectedDate, choices, message) {
   const offered=choices.slice(0,10);
   return editHelp(message+' 아직 수정하지 않았어요.\n'+offered.map((c,i)=>`${i+1}. ${c.label}`).join('\n')+'\n원하는 번호를 “선택 1”처럼 답해 주세요.',{version:1,request,selected_date:selectedDate,created_at:new Date().toISOString(),choices:offered});
 }
@@ -189,7 +189,7 @@ export function resolveEdit(request, meals, combinations, catalog, selectedDate)
 }
 
 const catalogKey=f=>JSON.stringify([f.name,f.brand||f.maker||'',f.unit,f.nutritionBase,...nutrients.map(n=>f[n]),f.portions||[]]);
-function resolveAddedFood(request,catalog,selectedDate,query=request.food) {
+export function resolveAddedFood(request,catalog,selectedDate,query=request.food) {
   const action=request.operation==='replace'?'새 음식으로 사용할':'추가할';
   const valid=catalog.filter(f=>f.name?.length<=200&&['g','mL','개','인분'].includes(f.unit)&&Number(f.nutritionBase)>0&&nutrients.every(n=>typeof f[n]==='number'&&Number.isFinite(f[n])&&f[n]>=0));
   const named=valid.filter(f=>key(f.name)===key(query));

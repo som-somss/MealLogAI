@@ -6,7 +6,7 @@
   const launch=button('AI 코치 · 나를 기억하는 식단 코칭  ›',()=>void open());launch.className='coachLaunch';document.querySelector('.homeGoals')?.before(launch);
   const dialog=node('dialog');dialog.className='coachDialog';dialog.setAttribute('aria-label','AI 식단 코치');
   const head=node('header'),close=button('닫기',()=>{epoch++;controller?.abort();dialog.close();});head.append(node('h2','MealLog AI 코치'),close);
-  const intro=node('p','“오늘 점심을 ○○으로 기억해줘”로 조합을 저장해요. 음식 추가·빼기·양 수정과 “점심 계란후라이를 오이 100g으로 바꿔줘” 같은 음식 교체도 식사 기록과 같은 구성의 저장 조합에 함께 반영해요.');
+  const intro=node('p','“오늘 점심을 ○○으로 기억해줘”로 조합을 저장해요. “점심 오이 100g을 추가하고, 마요네즈를 빼고, 계란후라이를 삶은 계란 한 알로 바꿔줘”처럼 여러 변경도 식사 기록과 같은 구성의 저장 조합에 한 번에 반영해요.');
   const date=node('input');date.type='date';date.max=today();date.setAttribute('aria-label','분석 기준 날짜');
   const dateLabel=node('label','분석 기준 날짜');dateLabel.append(date);
   const history=node('select');history.setAttribute('aria-label','이전 대화');history.onchange=()=>void loadConversation(history.value);
