@@ -37,7 +37,8 @@ export function makeHandler(fetcher=fetch,env=process.env){return async(req,res)
     const [meals,combos]=await Promise.all([edit.scope==='combination'?[]:request('/rest/v1/meals?'+mealQuery),edit.scope==='meal'?[]:request('/rest/v1/meal_combinations?'+comboQuery)]);
     result=resolveEdit(edit,meals,combos,siteFoods,body.selected_date);
     if (!result.reply) {
-     const saved=await request('/rest/v1/rpc/meallog_coach_resize',{p_conversation:body.conversation_id||null,p_request:body.request_id,p_question:body.message.trim(),p_edit:{meal:result.meal,combination:result.combination}});
+     const changing=['add','remove'].includes(result.operation);
+     const saved=await request('/rest/v1/rpc/'+(changing?'meallog_coach_change_foods':'meallog_coach_resize'),{p_conversation:body.conversation_id||null,p_request:body.request_id,p_question:body.message.trim(),p_edit:{meal:result.meal,combination:result.combination,...(changing?{operation:result.operation,food:result.food}:{})}});
      if (!saved?.ok || !saved.conversation_id || !saved.record_edit) throw Error('수정 결과를 확인하지 못했어요. 같은 질문으로 다시 시도해 주세요.');
      return res.status(200).json(saved);
     }

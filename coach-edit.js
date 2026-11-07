@@ -3,9 +3,35 @@ import {koreaDay, validDay} from './coach-core.js';
 const key = value => String(value || '').normalize('NFKC').toLowerCase().replace(/\s+/g, '');
 const nutrients = ['calories', 'carbs', 'protein', 'fat'];
 const guidance = '아직 수정하지 않았어요. 예: “오늘 점심 계란후라이를 50g으로 수정해줘”. 식사와 같은 구성의 저장 조합도 함께 수정해요. 한쪽만 바꾸려면 “식사만” 또는 “조합만”이라고 알려 주세요.';
-export const editHelp = (reply = guidance, pending = null) => ({reply, mode:'음식 양 수정 안내', warnings:[], evidence:[], suggestions:[], record_edit:{status:'needs_details'}, edit_pending:pending});
+export const editHelp = (reply = guidance, pending = null) => ({reply, mode:'음식 수정 안내', warnings:[], evidence:[], suggestions:[], record_edit:{status:'needs_details'}, edit_pending:pending});
 
 export function editRequest(question, selectedDate, today = koreaDay()) {
+  const change=foodChangeRequest(question,selectedDate,today);
+  return change || resizeRequest(question,selectedDate,today);
+}
+
+function foodChangeRequest(question, selectedDate, today) {
+  const text=question.normalize('NFKC').trim();
+  if (!/추가|넣어|넣지|빼|빼지|빼주|제거|삭제|제외/.test(text)) return null;
+  const help=()=>editHelp('추가하거나 뺄 음식 하나를 알려 주세요. 예: “오늘 점심 오이를 100g 추가해줘”, “오늘 점심 마요네즈를 빼줘”. 같은 구성의 저장 조합도 함께 반영해요. 아직 수정하지 않았어요.');
+  if (/하지\s*마|하지\s*않|넣지|빼지|말고|취소|나중에|다음에|만약|한다면|하면|방법|어떻게|추천|제안/.test(text)) return help();
+  const add=/(?:(?:추가)\s*해|넣어)\s*(?:줘요?|주세요|줄래요?|주실래요?)(?=[.!?。！？\s]|$)/g;
+  const remove=/(?:(?:제거|삭제|제외)\s*해|빼)\s*(?:줘요?|주세요|줄래요?|주실래요?)(?=[.!?。！？\s]|$)/g;
+  const adding=[...text.matchAll(add)],removing=[...text.matchAll(remove)];
+  if (adding.length+removing.length!==1) return help();
+  const operation=adding.length?'add':'remove',command=(adding[0]||removing[0]);
+  const quantity=/(-?\d+(?:\.\d+)?|한|두|세|네|반)\s*(킬로그램|그램|밀리리터|리터|kg|mL|ml|g|L|알|개|인분|공기|팩|잔|줄|조각)/;
+  const prefix=text.slice(0,command.index).trim();
+  if (operation==='remove' && quantity.test(prefix.replace(/\d{4}-\d{1,2}-\d{1,2}/g,''))) return editHelp('음식을 통째로 빼려면 “마요네즈를 빼줘”, 양을 줄이려면 남길 최종 양으로 “마요네즈를 2g으로 수정해줘”라고 알려 주세요. 아직 수정하지 않았어요.');
+  if (operation==='add' && !quantity.test(prefix)) return editHelp('추가할 양도 알려 주세요. 예: “오늘 점심 오이를 100g 추가해줘”. 아직 수정하지 않았어요.');
+  const transformed=prefix+(operation==='remove'?' 1g으로':'')+' 수정해줘'+text.slice(command.index+command[0].length);
+  const parsed=resizeRequest(transformed,selectedDate,today);
+  if (!parsed || parsed.reply) return parsed || help();
+  if (/전체|전부|모든|\s(?:및|하고|이랑)|와\s|과\s|,|\+|\//.test(parsed.food)) return help();
+  return {...parsed,operation,...(operation==='remove'?{amount:null,unit:null}:{})};
+}
+
+function resizeRequest(question, selectedDate, today) {
   const text = question.normalize('NFKC').trim();
   if (!/수정|변경|조정|바꿔|바꾸|고쳐|고치|줄여|줄이|늘려|늘리/.test(text)) return null;
   if (/하지\s*마|하지\s*않|말고|취소|나중에|다음에|만약|한다면|하면|방법|어떻게|추천|제안/.test(text)) return editHelp();
@@ -97,14 +123,21 @@ export function editChoice(question, messages, selectedDate, now=Date.now()) {
 // All writes are revalidated atomically in the database using these snapshots.
 export function resolveEdit(request, meals, combinations, catalog, selectedDate) {
   if (meals.length>100 || combinations.length>500) return editHelp('대상 기록이 많아요. 끼니와 조합 이름을 지정해 주세요. 아직 수정하지 않았어요.');
+  const adding=request.operation==='add',removing=request.operation==='remove';
+  let addedFood=null;
+  if (adding) {
+    const selection=resolveAddedFood(request,catalog,selectedDate);
+    if (selection.reply) return selection;
+    addedFood=selection.food;
+  }
   let meal=null, mealIndex=null, combo=null, comboIndex=null;
   if (request.scope!=='combination') {
     let rows=meals.filter(m=>m.meal_date===request.day && (!request.mealType||m.meal_type===request.mealType));
     if (request.latest) rows=rows.slice().sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))).slice(0,1);
-    let candidates=rows.flatMap(m=>(m.foods||[]).map((f,i)=>({row:m,index:i,food:f})).filter(c=>foodMatches(c.food,request.food,catalog)));
+    let candidates=adding?rows.map(m=>({row:m,index:null})):rows.flatMap(m=>(m.foods||[]).map((f,i)=>({row:m,index:i,food:f})).filter(c=>foodMatches(c.food,request.food,catalog)));
     if (request.mealId) candidates=candidates.filter(c=>c.row.id===request.mealId && c.index===request.mealIndex);
-    if (!candidates.length) return editHelp(`${request.day} ${request.mealType||''} 기록에서 “${request.food}”을 찾지 못했어요. 음식 이름과 날짜를 확인해 주세요. 아직 수정하지 않았어요.`);
-    if (candidates.length>1) return choicesReply(request,selectedDate,candidates.map(c=>({label:`${c.row.meal_type} · ${c.row.meal_time ? new Date(c.row.meal_time).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit'}) : '시간 미입력'} · ${c.food.name} ${c.food.grams}${foodUnit(c.food)} (음식 ${c.index+1})`,selection:{mealId:c.row.id,mealIndex:c.index}})),'같은 음식이 여러 식사 기록에 있어요. 어느 기록을 수정할까요?');
+    if (!candidates.length) return editHelp(adding?`${request.day} ${request.mealType||''}에 추가할 기존 식사 기록을 찾지 못했어요. 날짜와 끼니를 확인해 주세요. 아직 수정하지 않았어요.`:`${request.day} ${request.mealType||''} 기록에서 “${request.food}”을 찾지 못했어요. 음식 이름과 날짜를 확인해 주세요. 아직 수정하지 않았어요.`);
+    if (candidates.length>1) return choicesReply(request,selectedDate,candidates.map(c=>({label:`${c.row.meal_type} · ${c.row.meal_time ? new Date(c.row.meal_time).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit'}) : '시간 미입력'} · ${adding?c.row.foods.map(f=>f.name).join(' + '):`${c.food.name} ${c.food.grams}${foodUnit(c.food)} (음식 ${c.index+1})`}`,selection:{mealId:c.row.id,mealIndex:c.index}})),'수정할 식사 항목이 여러 개예요. 어느 기록을 수정할까요?');
     meal=candidates[0].row; mealIndex=candidates[0].index;
   }
   if (request.scope!=='meal') {
@@ -113,7 +146,7 @@ export function resolveEdit(request, meals, combinations, catalog, selectedDate)
     if (!candidates.length && (request.requireCombo||request.comboId)) return editHelp('함께 수정할 저장 조합을 찾지 못했어요. 조합 이름을 지정하거나 “식사만”이라고 요청해 주세요. 아직 어느 쪽도 수정하지 않았어요.');
     if (candidates.length>1) return choicesReply({...request,mealId:meal?.id,mealIndex},selectedDate,candidates.map(c=>({label:c.name,selection:{comboId:c.id}})),'함께 수정할 조합이 여러 개예요. 어떤 조합을 수정할까요?');
     combo=candidates[0]||null;
-    if (combo) {
+    if (combo && !adding) {
       let matches=combo.foods.map((food,index)=>({food,index})).filter(c=>foodMatches(c.food,request.food,catalog));
       if (request.comboIndex!=null) matches=matches.filter(c=>c.index===request.comboIndex);
       if (!matches.length) return editHelp(`“${combo.name}” 조합에 “${request.food}”이 없어 수정하지 않았어요.`);
@@ -121,11 +154,32 @@ export function resolveEdit(request, meals, combinations, catalog, selectedDate)
       comboIndex=matches[0].index;
     }
   }
+  if (adding && (meal?.foods.length>=100 || combo?.foods.length>=8)) return editHelp('추가하면 음식 개수 제한을 넘어요. 저장 조합은 최대 8개, 식사 기록은 최대 100개까지 담을 수 있어요. 먼저 불필요한 음식을 빼 주세요. 아직 어느 쪽도 수정하지 않았어요.');
+  if (removing && (meal?.foods.length<=1 || combo?.foods.length<=1)) return editHelp('마지막 음식을 빼면 식사나 조합이 비게 되어 수정하지 않았어요. 다른 음식을 먼저 추가하거나, 전체 삭제는 해당 기록 화면에서 진행해 주세요.');
   try {
     return {
-      meal:meal?{id:meal.id,index:mealIndex,amount:amountFor(meal.foods[mealIndex],request,catalog),expected:meal.foods}:null,
-      combination:combo?{id:combo.id,index:comboIndex,amount:amountFor(combo.foods[comboIndex],request,catalog),expected:combo.foods,revision:combo.revision}:null,
-      request
+      meal:meal?{id:meal.id,index:mealIndex,...(!adding&&!removing?{amount:amountFor(meal.foods[mealIndex],request,catalog)}:{}),expected:meal.foods}:null,
+      combination:combo?{id:combo.id,index:comboIndex,...(!adding&&!removing?{amount:amountFor(combo.foods[comboIndex],request,catalog)}:{}),expected:combo.foods,revision:combo.revision}:null,
+      request,operation:request.operation||'resize',food:addedFood
     };
   } catch (error) {return editHelp(error.message+' 아직 어느 쪽도 수정하지 않았어요.');}
+}
+
+const catalogKey=f=>JSON.stringify([f.name,f.brand||f.maker||'',f.unit,f.nutritionBase,...nutrients.map(n=>f[n]),f.portions||[]]);
+function resolveAddedFood(request,catalog,selectedDate) {
+  const valid=catalog.filter(f=>f.name?.length<=200&&['g','mL','개','인분'].includes(f.unit)&&Number(f.nutritionBase)>0&&nutrients.every(n=>typeof f[n]==='number'&&Number.isFinite(f[n])&&f[n]>=0));
+  const named=valid.filter(f=>key(f.name)===key(request.food));
+  const exact=named.length?named:valid.filter(f=>foodMatches(f,request.food,[])||(f.aliases||[]).some(a=>key(a)===key(request.food)));
+  let matches=exact.length?exact:valid.filter(f=>key([f.brand||f.maker||'',f.name].join(' ')).includes(key(request.food)));
+  matches=[...new Map(matches.map(f=>[catalogKey(f),f])).values()];
+  if(request.catalogId)matches=matches.filter(f=>catalogKey(f)===request.catalogId);
+  if(!matches.length)return editHelp('추가할 음식을 앱 음식 자료에서 확인하지 못했어요. 음식 검색에 표시되는 정확한 이름으로 요청해 주세요. 아직 어느 쪽도 수정하지 않았어요.');
+  if(matches.length>10)return editHelp('비슷한 음식이 많아요. 조리 방식이나 제품 이름을 더 자세히 알려 주세요. 아직 수정하지 않았어요.');
+  if(matches.length>1)return choicesReply(request,selectedDate,matches.map(f=>({label:`${f.name}${f.brand||f.maker?' · '+(f.brand||f.maker):''} · ${f.nutritionBase}${f.unit}당 ${f.calories}kcal`,selection:{catalogId:catalogKey(f)}})),'어떤 음식을 추가할까요?');
+  try {
+    const f=matches[0],grams=amountFor(f,request,[f]);
+    const food={name:f.name,grams,unit:f.unit,manualBrand:f.brand||f.maker||'',...Object.fromEntries(nutrients.map(n=>[n,Math.round(f[n]*grams/Number(f.nutritionBase)*10000)/10000]))};
+    if(nutrients.some(n=>!Number.isFinite(food[n])||food[n]>1000000))throw Error('추가할 양이 너무 커요. 양을 다시 확인해 주세요.');
+    return {food};
+  } catch(error) {return editHelp(error.message+' 아직 어느 쪽도 수정하지 않았어요.');}
 }
