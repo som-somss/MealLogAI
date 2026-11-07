@@ -217,7 +217,7 @@
   document.addEventListener('input',queueSuggestion);document.addEventListener('focusin',queueSuggestion);
   async function chooseMemoryFoods(foods,notice,date){owner=getUser()?.id;const chosenOwner=owner;version++;const chosenVersion=version;dialog.showModal();await show('chat');if(getUser()?.id!==chosenOwner||version!==chosenVersion||!dialog.open)return;loadApprovedFoods(foods,null,notice+' · 이번 섭취량을 확인해 주세요.',date);}
   const personal=MealLogPersonalMemory.mount({client,getUser,prepare,onChoose:chooseMemoryFoods});
-  const coach=MealLogCoach.mount({client,getUser,getDay,prepare,usage,requestFetch,onChoose:chooseMemoryFoods});
+  const coach=MealLogCoach.mount({client,getUser,getDay,prepare,usage,requestFetch,onRecordsChange:refresh,onChoose:chooseMemoryFoods});
   return {openForEntry(options){entryBridge=options;useAI=true;assistant.clear();open('chat');},accountChanged(){coach.accountChanged();personal.accountChanged();if(owner!==getUser()?.id){entryBridge=null;version++;assistant.clear();batchDraft=null;owner=null;rows=[];memories=[];combinations=[];body.replaceChildren();document.querySelectorAll('.approvedMemorySuggestions').forEach(n=>n.remove());if(dialog.open)dialog.close();}},reset(){coach.reset();personal.reset();entryBridge=null;version++;assistant.clear();clearDraft();batchDraft=null;rows=[];memories=[];combinations=[];dialog.close();}};
  }
  window.MealLogFoodMemory={mount};

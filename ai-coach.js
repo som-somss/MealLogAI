@@ -2,11 +2,11 @@
  const node=(tag,text)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;return n;};
  const button=(text,fn)=>{const b=node('button',text);b.type='button';b.onclick=fn;return b;};
  const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
- function mount({client,getUser,getDay,prepare,onChoose,usage,requestFetch=fetch}){
+ function mount({client,getUser,getDay,prepare,onChoose,usage,requestFetch=fetch,onRecordsChange}){
   const launch=button('AI 코치 · 나를 기억하는 식단 코칭  ›',()=>void open());launch.className='coachLaunch';document.querySelector('.homeGoals')?.before(launch);
   const dialog=node('dialog');dialog.className='coachDialog';dialog.setAttribute('aria-label','AI 식단 코치');
   const head=node('header'),close=button('닫기',()=>{epoch++;controller?.abort();dialog.close();});head.append(node('h2','MealLog AI 코치'),close);
-  const intro=node('p','내 식사 기록으로 함께 생각해요. “오늘 점심을 ○○으로 기억해줘”라고 하면 실제 기록을 내 조합으로 저장해요.');
+  const intro=node('p','“오늘 점심을 ○○으로 기억해줘”로 조합을 저장하고, “점심 계란후라이를 50g으로 수정해줘”로 기록과 같은 구성의 저장 조합을 함께 바꿀 수 있어요.');
   const date=node('input');date.type='date';date.max=today();date.setAttribute('aria-label','분석 기준 날짜');
   const dateLabel=node('label','분석 기준 날짜');dateLabel.append(date);
   const history=node('select');history.setAttribute('aria-label','이전 대화');history.onchange=()=>void loadConversation(history.value);
@@ -38,7 +38,7 @@
   form.onsubmit=e=>{e.preventDefault();if(busy||!form.reportValidity())return;const question=input.value.trim(),day=date.value;if(!question)return;const signature=JSON.stringify([question,day,conversation]);if(request?.signature!==signature)request={signature,id:crypto.randomUUID()};void task(async(check,id)=>{
    const {data,error}=await client.auth.getSession();check();if(error||data.session?.user?.id!==id)throw Error('로그인을 다시 확인해 주세요.');controller=new AbortController();const timer=setTimeout(()=>controller?.abort(),55000);let result;
    try{const response=await requestFetch('/api/ai-coach',{method:'POST',headers:{Authorization:'Bearer '+data.session.access_token,'Content-Type':'application/json'},body:JSON.stringify({message:question,selected_date:day,request_id:request.id,conversation_id:conversation}),cache:'no-store',signal:controller.signal});result=await response.json();check();if(!response.ok||result.ok!==true)throw Error(result.message||'응답을 확인하지 못했어요.');}finally{clearTimeout(timer);controller=null;}
-   if(result.usage)usage?.accept(result.usage,id);conversation=result.conversation_id;bubble('user',question);bubble('assistant',result.reply,result);input.value='';request=null;status.textContent=['saved','already_saved'].includes(result.memory_save?.status)?'내 조합에 저장되어 있어요. 식단 비서의 내 조합에서 확인할 수 있어요.':result.memory_save?'저장 안내를 확인해 주세요.':'대화를 저장했어요. 식단은 메뉴 확인 후 별도로 저장해 주세요.';try{await list(check,id);}catch(e){check();status.textContent='답변은 저장했어요. 대화 목록 갱신은 다시 열어 확인해 주세요.';}
+   if(result.usage)usage?.accept(result.usage,id);conversation=result.conversation_id;bubble('user',question);bubble('assistant',result.reply,result);input.value='';request=null;status.textContent=result.record_edit?(['updated','unchanged'].includes(result.record_edit.status)?'기록과 조합의 수정 결과를 확인해 주세요.':'수정 안내를 확인해 주세요.'):['saved','already_saved'].includes(result.memory_save?.status)?'내 조합에 저장되어 있어요. 식단 비서의 내 조합에서 확인할 수 있어요.':result.memory_save?'저장 안내를 확인해 주세요.':'대화를 저장했어요. 식단은 메뉴 확인 후 별도로 저장해 주세요.';if(['updated','unchanged'].includes(result.record_edit?.status)&&result.record_edit.meal_id){try{await onRecordsChange?.();check();}catch(e){check();status.textContent='수정은 저장됐어요. 목록을 새로고침해 최신 기록을 확인해 주세요.';}}try{await list(check,id);}catch(e){check();status.textContent='답변은 저장했어요. 대화 목록 갱신은 다시 열어 확인해 주세요.';}
   });};
   return {accountChanged(){if(owner!==getUser()?.id)reset();},reset,open};
  }
