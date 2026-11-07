@@ -2,6 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createGenerator, generationDiagnostic} from '../coach-generation.js';
 
+test('writer cannot claim a successful or future write without a persistence result', async () => {
+  const generator = createGenerator(async () => Response.json({status:'completed', output:[{content:[{type:'output_text', text:'시오콘부볶음밥으로 저장해 드리겠습니다. 기억에 반영했어요. 식사 기록을 확인해 주세요.'}]}]}), {OPENAI_API_KEY:'test-key'});
+  assert.equal(await generator.answer('기억됐어?', {kind:'general'}, {}), '식사 기록을 확인해 주세요.');
+});
+
 test('classifies provider failures without retaining error messages or credentials', async () => {
   for (const code of ['insufficient_quota', 'invalid_api_key', 'unexpected-private-value']) {
     const generator = createGenerator(async () => Response.json({error: {

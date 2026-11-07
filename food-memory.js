@@ -4,7 +4,7 @@
  const button=(text,fn)=>{const b=el('button',text,'secondary');b.type='button';b.onclick=fn;return b;};
  const summary=foods=>(foods||[]).map(f=>f.name+' '+f.grams+(f.unit||f.barcodeProduct?.unit||'g')+(window.MealLogQuality?.unknown(f)?' · 영양정보 미입력':'')).join(', ');
  const total=foods=>C.nutrients.map(k=>Math.round((foods||[]).filter(f=>!window.MealLogQuality?.unknown(f)).reduce((s,f)=>s+Number(f[k]||0),0)*10)/10);
- function mount({client,getUser,prepare,refresh,getDay,getDatabase,usage}){
+ function mount({client,getUser,prepare,refresh,getDay,getDatabase,usage,requestFetch=fetch}){
   const assistant=MealLogAssistantClient.create({client,getUser,onUsage:(value,owner)=>usage?.accept(value,owner)});let useAI=true,batchDraft=null,entryBridge=null;
   const launch=el('section',null,'chartCard foodMemoryLaunch');const launchTitle=el('b',null,'foodMemoryTitle');launchTitle.append(MealLogIcons.peach(),document.createTextNode('나를 기억하는 식단 비서'));launch.append(launchTitle,el('p','말로 기록하고, 승인한 음식과 양을 다시 제안받아요.'));
   const settingsAnchor=document.querySelector('#settingsDialog .settingsBody'),memoryAnchor=document.querySelector('#mealRecords');if(settingsAnchor){launch.classList.add('foodMemorySettings');launchTitle.textContent='식단 기억·이력';launch.querySelector('p').textContent='기억 수정·삭제와 지난 기록 변경 이력을 관리해요.';settingsAnchor.insertBefore(launch,settingsAnchor.querySelector('#shortcutSettings'));}else if(memoryAnchor)memoryAnchor.append(launch);else document.querySelector('#meals').before(launch);
@@ -217,7 +217,7 @@
   document.addEventListener('input',queueSuggestion);document.addEventListener('focusin',queueSuggestion);
   async function chooseMemoryFoods(foods,notice,date){owner=getUser()?.id;const chosenOwner=owner;version++;const chosenVersion=version;dialog.showModal();await show('chat');if(getUser()?.id!==chosenOwner||version!==chosenVersion||!dialog.open)return;loadApprovedFoods(foods,null,notice+' · 이번 섭취량을 확인해 주세요.',date);}
   const personal=MealLogPersonalMemory.mount({client,getUser,prepare,onChoose:chooseMemoryFoods});
-  const coach=MealLogCoach.mount({client,getUser,getDay,prepare,usage,onChoose:chooseMemoryFoods});
+  const coach=MealLogCoach.mount({client,getUser,getDay,prepare,usage,requestFetch,onChoose:chooseMemoryFoods});
   return {openForEntry(options){entryBridge=options;useAI=true;assistant.clear();open('chat');},accountChanged(){coach.accountChanged();personal.accountChanged();if(owner!==getUser()?.id){entryBridge=null;version++;assistant.clear();batchDraft=null;owner=null;rows=[];memories=[];combinations=[];body.replaceChildren();document.querySelectorAll('.approvedMemorySuggestions').forEach(n=>n.remove());if(dialog.open)dialog.close();}},reset(){coach.reset();personal.reset();entryBridge=null;version++;assistant.clear();clearDraft();batchDraft=null;rows=[];memories=[];combinations=[];dialog.close();}};
  }
  window.MealLogFoodMemory={mount};

@@ -3,6 +3,7 @@ import {plan,compose} from '../coach-core.js';
 import {siteFoods} from '../coach-catalog.js';
 import {lookupFood} from '../coach-food-budget.js';
 import {createGenerator,previousIntent,resolveFollowUp,conversationContext,generationDiagnostic} from '../coach-generation.js';
+import {memoryRequest,memoryHelp} from '../coach-memory.js';
 const cfg=readFileSync(new URL('../supabase-config.js',import.meta.url),'utf8');
 const database=cfg.match(/https:\/\/[a-z]+\.supabase\.co/)[0],publicKey=cfg.match(/sb_publishable_[a-zA-Z0-9_-]+/)[0];
 const uuid=v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
@@ -14,12 +15,28 @@ export function makeHandler(fetcher=fetch,env=process.env){return async(req,res)
  let body;try{body=typeof req.body==='string'?JSON.parse(req.body):req.body;}catch{return fail(400,'질문 형식을 확인해 주세요.');}
  if(!body||typeof body.message!=='string'||!body.message.trim()||body.message.length>1500||!uuid(body.request_id)||(body.conversation_id!=null&&!uuid(body.conversation_id)))return fail(400,'질문과 대화 정보를 확인해 주세요.');
  let route;try{route=plan(body.message,body.selected_date);}catch(e){return fail(400,e.message);}
- const headers={apikey:publicKey,Authorization:authorization,'Content-Type':'application/json'};
+ const generation=req.headers['x-meallog-generation'];
+ if(generation!=null&&!uuid(generation))return fail(400,'기록 동기화 상태를 확인해 주세요.');
+ const headers={apikey:publicKey,Authorization:authorization,'Content-Type':'application/json',...(generation?{'x-meallog-generation':generation}:{})};
  async function request(path,data){const r=await fetcher(database+path,{method:data?'POST':'GET',headers,body:data?JSON.stringify(data):undefined,signal:AbortSignal.timeout(12000)});if(!r.ok)throw Error(r.status===401||r.status===403?'로그인 상태를 다시 확인해 주세요.':'서버 조회·저장을 완료하지 못했어요. 질문을 유지했으니 다시 시도해 주세요.');if(r.status===204)return null;const text=await r.text();return text?JSON.parse(text):null;}
  try{
   const user=await request('/auth/v1/user');if(!user?.id)return fail(401,'로그인을 확인해 주세요.');
   const prior=await request('/rest/v1/ai_coach_messages?select=conversation_id,content,metadata&user_id=eq.'+user.id+'&request_id=eq.'+body.request_id+'&role=eq.assistant');
   if(prior[0])return res.status(200).json({ok:true,conversation_id:prior[0].conversation_id,...prior[0].metadata,reply:prior[0].content});
+  const remember = memoryRequest(body.message,body.selected_date);
+  if (remember) {
+   if (!remember.reply) {
+    const saved = await request('/rest/v1/rpc/meallog_coach_remember',{
+     p_conversation:body.conversation_id||null,p_request:body.request_id,p_question:body.message.trim(),
+     p_day:remember.day,p_meal_type:remember.mealType,p_name:remember.name,p_latest:remember.latest
+    });
+    if (!saved?.ok || !saved.conversation_id || !saved.memory_save) throw Error('저장 결과를 확인하지 못했어요. 같은 질문으로 다시 시도해 주세요.');
+    return res.status(200).json(saved);
+   }
+   const result=memoryHelp(remember.reply);
+   const id=await request('/rest/v1/rpc/meallog_coach_save',{p_conversation:body.conversation_id||null,p_request:body.request_id,p_question:body.message.trim(),p_reply:result.reply,p_metadata:result});
+   return res.status(200).json({ok:true,conversation_id:id,...result});
+  }
   const settingsContext = await request('/rest/v1/rpc/meallog_coach_context',{p_kind:'general',p_day:route.day});
   let previous = null;
   if (body.conversation_id) {

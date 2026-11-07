@@ -125,7 +125,7 @@
   const friendsPanel=MealLogFriends.mount({client:sb,getUser:()=>user,onLogin:()=>openAuth(),onData:data=>challengePanel.setFriends(data)});
   const resetPanel=recordReset.mount({client:sb,getUser:()=>user,isSyncing:()=>syncing,pause(){resetting=true;clearTimeout(syncTimer);},resume(){resetting=false;},createVerifier:()=>window.supabase.createClient(window.MEALLOG_SUPABASE_URL,window.MEALLOG_SUPABASE_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,storageKey:'meallog-reset-proof-'+crypto.randomUUID()}}),completed(){setTimeout(()=>loadAndMerge(),0);challengePanel.refreshVisible();}});
   const aiUsage=MealLogAIUsage.create({client:sb,getUser:()=>user});aiUsage.mountSettings();
-  const foodMemoryPanel=MealLogFoodMemory.mount({usage:aiUsage,client:sb,getUser:()=>user,getDay:()=>selectedDate,getDatabase:()=>FOOD_DB,prepare:async()=>{
+  const foodMemoryPanel=MealLogFoodMemory.mount({usage:aiUsage,client:sb,requestFetch:recordReset.fetch,getUser:()=>user,getDay:()=>selectedDate,getDatabase:()=>FOOD_DB,prepare:async()=>{
     if(!user)throw Error("로그인이 필요해요.");
     if(loadingMeals||syncing||resetting||savingSteps||!getMealSync().ready||getMealSync().pendingCount)throw Error("먼저 기존 기록 동기화를 마친 뒤 다시 열어 주세요.");
     const owner=user.id,epoch=recordEpoch;const [changed,access]=await Promise.all([recordReset.prepare(user),sb.rpc('meal_food_capabilities')]);
