@@ -72,7 +72,7 @@ test('missing required combination, full combination and final food cannot partl
  assert.equal(resolveEdit(editRequest('오늘 점심 오이를 100g 추가해줘',day),meals,[single],siteFoods,day).combination,null);
 });
 
-test('API dispatches add/remove to the atomic RPC and never calls a model or claims failed persistence',async()=>{
+test('API dispatches add/remove/replace to the atomic RPC and never calls a model or claims failed persistence',async()=>{
  const userId=randomUUID(),conversationId=randomUUID();let fail=false,calls=[];const stored=[];
  const handler=makeHandler(async(url,options)=>{
   const u=new URL(url),body=options.body&&JSON.parse(options.body);calls.push({path:u.pathname,body});
@@ -100,5 +100,7 @@ test('API dispatches add/remove to the atomic RPC and never calls a model or cla
  assert.deepEqual((await ask('오늘 점심 오이를 100g 추가해줘',id)).data,first.data);
  assert.equal(calls.filter(c=>c.path.endsWith('meallog_coach_change_foods')).length,1);
  assert.equal((await ask('오늘 점심 계란후라이를 빼줘')).data.record_edit.operation,'remove');
+ assert.equal((await ask('오늘 점심 계란후라이를 오이 100g으로 바꿔줘')).data.record_edit.operation,'replace');
+ assert.equal(calls.at(-1).body.p_edit.meal.index,1);assert.equal(calls.at(-1).body.p_edit.food.name,'오이');assert.equal(calls.at(-1).body.p_edit.food.calories,15);
  fail=true;const failed=await ask('오늘 점심 오이를 100g 추가해줘');assert.equal(failed.statusCode,503);assert.equal(failed.data.reply,undefined);
 });
