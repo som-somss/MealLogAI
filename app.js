@@ -1,4 +1,4 @@
-const $=s=>document.querySelector(s), mealsEl=$('#meals'); let photoData='', editingMealId=null;
+const $=s=>document.querySelector(s), mealsEl=$('#meals'); let photoData='', editingMealId=null,selectedMealType=null;
 let state=JSON.parse(localStorage.getItem('meallog-state')||'{"goal":1200,"meals":[],"weights":[]}');
 state.meals=state.meals||[]; state.weights=state.weights||[]; state.goal=state.goal||1200; state.targetWeight=state.targetWeight||null; state.activity=state.activity||{}; state.stepsGoal=state.stepsGoal||8000; state.waterGoal=state.waterGoal||2000;
 const FOOD_DB=[
@@ -256,33 +256,62 @@ function defaultTimeForDate(k){let now=new Date(), today=localDateKey(now); if(k
 function render(){
  let day=state.meals.filter(m=>m.time&&m.time.slice(0,10)===selectedDate).sort((a,b)=>a.time.localeCompare(b.time));
  let sum=k=>day.flatMap(m=>m.foods||[]).reduce((a,f)=>a+(+f[k]||0),0),cal=Math.round(sum('calories'));
- $('#totalCal').textContent=cal;$('#remainCal').textContent=Math.max(0,state.goal-cal);$('#carbs').textContent=Math.round(sum('carbs'));$('#protein').textContent=Math.round(sum('protein'));$('#fat').textContent=Math.round(sum('fat'));
+ $('#totalCal').textContent=cal;$('#remainCal').textContent=Math.max(0,state.goal-cal);window.MealLogCalories.render(cal,state.goal);$('#carbs').textContent=Math.round(sum('carbs'));$('#protein').textContent=Math.round(sum('protein'));$('#fat').textContent=Math.round(sum('fat'));
  {const today=localDateKey(new Date());const mode=selectedDate===today?'today':selectedDate>today?'future':'past';$('#todayLabel').textContent=mode==='today'?'오늘의 식사 다이어리':mode==='future'?'예정 식사 다이어리':'지난 식사 다이어리';const title=document.querySelector('header h1');if(title)title.textContent=mode==='today'?'오늘 뭐 먹었지?':mode==='future'?'뭐 먹을까?':'그날 뭐 먹었지?';}
  $('#selectedDateLabel').textContent=dateText(selectedDate);$('#recordDateHint').textContent=selectedDate===localDateKey(new Date())?'':'';
- mealsEl.innerHTML=day.length?'':'<div class="empty">이 날짜에는 아직 기록이 없어요.<br>아래 버튼으로 식사를 추가해보세요.</div>';
- day.forEach(m=>{let c=(m.foods||[]).reduce((a,f)=>a+(+f.calories||0),0),names=(m.foods||[]).map(f=>f.name).join(', '),photo=m.photo?`<div class="mealPhoto"><img src="${m.photo}"></div>`:`<div class="mealNoPhoto"><span class="plateIcon"></span></div>`;let el=document.createElement('article');el.className='meal';el.innerHTML=`${photo}<div><h3>${m.type} · ${new Date(m.time).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</h3><p>${names||'음식 기록'}</p><p><b>${Math.round(c)} kcal</b></p></div><button class="delete">×</button>`;el.onclick=e=>{if(!e.target.closest('.delete'))openMealEditor(m)};el.querySelector('.delete').onclick=e=>{e.stopPropagation();if(confirm('이 기록을 삭제할까요?')){state.meals=state.meals.filter(x=>x.id!==m.id);save()}};mealsEl.appendChild(el)});
- renderCalendar();renderActivity()
+ const listedDay=selectedMealType?day.filter(m=>selectedMealType==='기타'?!['아침','점심','저녁','간식'].includes(m.type):m.type===selectedMealType):[];
+ $('#mealDetails').hidden=!selectedMealType;$('#mealDetailsTitle').textContent=selectedMealType?dateText(selectedDate)+' · '+selectedMealType+' 음식 목록':'';
+ mealsEl.replaceChildren();
+ if(selectedMealType&&!listedDay.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='아직 '+selectedMealType+' 기록이 없어요. 카드의 ＋ 버튼으로 추가해 주세요.';mealsEl.append(empty);}
+ listedDay.forEach(m=>{
+  const card=document.createElement('article');card.className='meal';card.dataset.mealId=m.id;
+  const photo=document.createElement('div');photo.className=m.photo?'mealPhoto':'mealNoPhoto';
+  if(m.photo){const img=document.createElement('img');img.src=m.photo;img.alt=(m.type||'식사')+' 사진';photo.append(img);}else{const icon=document.createElement('span');icon.className='plateIcon';photo.append(icon);}
+  const content=document.createElement('div'),title=document.createElement('h3'),foods=document.createElement('ul'),sum=document.createElement('b');foods.className='mealFoodList';
+  title.textContent=(m.type||'기타')+' · '+new Date(m.time).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  for(const f of m.foods||[]){const line=document.createElement('li'),name=document.createElement('span'),detail=document.createElement('small');name.textContent=f.name||'음식';detail.textContent=(f.grams!=null?f.grams+(f.unit||f.barcodeProduct?.unit||'g')+' · ':'')+(MealLogQuality.unknown(f)?'영양정보 미입력':Math.round(Number(f.calories)||0)+' kcal');line.append(name,detail);foods.append(line);}
+  sum.textContent=MealLogQuality.label(m.foods||[]);content.append(title,foods,sum);
+  const actions=document.createElement('div');actions.className='mealActions';const edit=document.createElement('button');edit.type='button';edit.className='secondary';edit.textContent='수정';edit.setAttribute('aria-label',(m.type||'식사')+' '+m.time.slice(11,16)+' 기록 수정');edit.onclick=()=>openMealEditor(m);
+  const remove=document.createElement('button');remove.type='button';remove.className='delete';remove.textContent='×';remove.setAttribute('aria-label',(m.type||'식사')+' '+m.time.slice(11,16)+' 기록 삭제');remove.onclick=()=>{if(confirm('이 기록을 삭제할까요?')){state.meals=state.meals.filter(x=>x.id!==m.id);save();}};
+  actions.append(edit,remove);card.onclick=e=>{if(!e.target.closest('button'))openMealEditor(m);};card.append(photo,content,actions);mealsEl.append(card);
+ });
+ window.MealLogQualityUI?.nutritionNotice(day);document.querySelectorAll('#meals .empty').forEach(box=>box.prepend(MealLogIcons.peach()));window.MealLogStreak?.render(state);renderCalendar();renderActivity();window.MealLogHome?.render();window.MealLogExercise?.render();window.MealLogWeekly?.render()
 }
 function activityFor(k){if(!state.activity[k])state.activity[k]={steps:0,water:0,waterHistory:[]};state.activity[k].waterHistory=state.activity[k].waterHistory||[];return state.activity[k]}
 function renderActivity(){
  let a=activityFor(selectedDate),sg=state.stepsGoal||8000,wg=state.waterGoal||2000,sp=Math.min(100,Math.round((a.steps||0)/sg*100)),wp=Math.min(100,Math.round((a.water||0)/wg*100));
+ $('#undoWater').disabled=!(a.waterHistoryV2&&a.waterHistory.length&&a.water>0);
  $('#stepsToday').textContent=(a.steps||0).toLocaleString();$('#waterToday').textContent=(a.water||0).toLocaleString();$('#stepsGoalText').textContent=sg.toLocaleString();$('#waterGoalText').textContent=wg.toLocaleString();
  $('#stepsPercent').textContent=`${sp}%`;$('#waterPercent').textContent=`${wp}%`;$('#stepsProgress').style.width=`${sp}%`;$('#waterProgress').style.width=`${wp}%`;$('#activityDateLabel').textContent=selectedDate===localDateKey(new Date())?'오늘':dateText(selectedDate);
 }
 function setSteps(){
- let a=activityFor(selectedDate),v=prompt('걸음 수를 입력하세요.',a.steps||'');if(v===null)return;v=Math.max(0,Math.round(+v||0));a.steps=v;save();renderActivity()
+ const dialog=$('#stepsDialog');dialog.dataset.date=selectedDate;$('#stepsDialogDate').textContent=dateText(selectedDate);$('#stepsInput').value=activityFor(selectedDate).steps||'';$('#stepsInputError').textContent='';dialog.showModal();$('#stepsInput').focus();
 }
-function addWater(ml){let a=activityFor(selectedDate);a.waterHistory.push(ml);a.water=(a.water||0)+ml;save();renderActivity()}
-function undoWater(){let a=activityFor(selectedDate),last=a.waterHistory.pop();if(last){a.water=Math.max(0,(a.water||0)-last);save();renderActivity()}}
+function addWater(ml){
+ if(!Number.isInteger(ml)||ml<=0)return;
+ if(window.mealRecordWater?.(selectedDate,ml)===false)return;
+ const a=activityFor(selectedDate);if(!a.waterHistoryV2){a.waterHistory=[];a.waterHistoryV2=true;}
+ a.waterHistory.push(ml);a.water=Math.max(0,Number(a.water)||0)+ml;save();renderActivity();
+ $('#waterStatus').textContent=ml+'mL를 추가했어요.';
+}
+function undoWater(){
+ const a=activityFor(selectedDate);if(!a.waterHistoryV2||!a.waterHistory.length)return;
+ const last=Math.min(Number(a.waterHistory[a.waterHistory.length-1])||0,Number(a.water)||0);if(!last)return;
+ if(window.mealRecordWater?.(selectedDate,-last)===false)return;
+ a.waterHistory.pop();a.water=Math.max(0,a.water-last);save();renderActivity();$('#waterStatus').textContent=last+'mL 추가를 취소했어요.';
+}
+
 function changeDay(n){let d=new Date(selectedDate+"T12:00:00");d.setDate(d.getDate()+n);selectedDate=localDateKey(d);calendarMonth=new Date(d);render()}
 $('#prevDay').onclick=()=>changeDay(-1);$('#nextDay').onclick=()=>changeDay(1);
 $('#dateBtn').onclick=()=>{calendarMonth=new Date(selectedDate+"T12:00:00");$('#calendarPanel').hidden=!$('#calendarPanel').hidden;renderCalendar()};
 $('#todayBtn').onclick=()=>{selectedDate=localDateKey(new Date());calendarMonth=new Date();$('#calendarPanel').hidden=true;render()};
 $('#prevMonth').onclick=()=>{calendarMonth.setMonth(calendarMonth.getMonth()-1);renderCalendar()};$('#nextMonth').onclick=()=>{calendarMonth.setMonth(calendarMonth.getMonth()+1);renderCalendar()};
 function renderCalendar(){let y=calendarMonth.getFullYear(),m=calendarMonth.getMonth();$('#monthLabel').textContent=`${y}년 ${m+1}월`;let grid=$('#calendarGrid');grid.innerHTML='';let first=new Date(y,m,1),start=new Date(y,m,1-first.getDay());let mealDays=new Set(state.meals.filter(x=>x.time).map(x=>x.time.slice(0,10)));for(let i=0;i<42;i++){let d=new Date(start);d.setDate(start.getDate()+i);let k=localDateKey(d),b=document.createElement('button');b.type='button';b.className='day';b.textContent=d.getDate();if(d.getMonth()!=m)b.classList.add('other');if(k===selectedDate)b.classList.add('selected');if(k===localDateKey(new Date()))b.classList.add('today');if(mealDays.has(k))b.classList.add('hasMeal');b.onclick=()=>{selectedDate=k;calendarMonth=new Date(k+"T12:00:00");$('#calendarPanel').hidden=true;render()};grid.appendChild(b)}}
-function norm(s){return(s||'').toLowerCase().replace(/\s/g,'')}function findFoods(q){q=norm(q);if(!q)return[];return FOOD_DB.filter(f=>norm(f.name).includes(q)||(f.aliases||[]).some(a=>norm(a).includes(q))).slice(0,20)}
+function norm(s){return(s||'').toLowerCase().replace(/\s/g,'')}function findFoods(q){if(!norm(q))return[];return MealLogFoodQuery.search(q,FOOD_DB).slice(0,20)}
+function captureRecordNutrition(row){const amount=Number(row.querySelector('.grams').value),fields=['calories','carbs','protein','fat'];if(row.querySelector('.nutritionLater')?.checked||!(amount>0)||fields.some(k=>row.querySelector('.'+k).value===''||!Number.isFinite(Number(row.querySelector('.'+k).value))||Number(row.querySelector('.'+k).value)<0)){delete row.dataset.recordNutrition;return;}row.dataset.recordNutrition=JSON.stringify({amount,unit:readFoodUnit(row),...Object.fromEntries(fields.map(k=>[k,Number(row.querySelector('.'+k).value)]))});}
+function calcRecordNutrition(row){let basis;try{basis=JSON.parse(row.dataset.recordNutrition||'null');}catch{return;}const amount=Number(row.querySelector('.grams').value);if(!basis||!(basis.amount>0)||!Number.isFinite(amount)||amount<0)return;const ratio=amount/basis.amount;for(const k of ['calories','carbs','protein','fat'])row.querySelector('.'+k).value=k==='calories'?String(Math.round(basis[k]*ratio)):(basis[k]*ratio).toFixed(1);const badge=row.querySelector('.dbBadge');badge.hidden=false;badge.textContent='저장된 '+basis.amount+basis.unit+' 영양정보 기준 · 양에 맞춰 재계산';}
 function calcRow(row){const idx=+row.dataset.dbIndex;if(!Number.isInteger(idx)||!FOOD_DB[idx])return;const f=FOOD_DB[idx],g=Math.max(0,+row.querySelector('.grams').value||0),r=g/100;row.querySelector('.calories').value=Math.round(f.calories*r);row.querySelector('.carbs').value=(f.carbs*r).toFixed(1);row.querySelector('.protein').value=(f.protein*r).toFixed(1);row.querySelector('.fat').value=(f.fat*r).toFixed(1)}
-function chooseFood(row,f){const idx=FOOD_DB.indexOf(f);row.dataset.dbIndex=idx;row.querySelector('.name').value=f.name;const p=row.querySelector('.portion');p.innerHTML='';(f.portions||[['100g',100]]).forEach(([n,g])=>{let o=document.createElement('option');o.value=g;o.textContent=`${n} (${g}g)`;p.appendChild(o)});p.hidden=false;row.querySelector('.dbBadge').hidden=false;row.querySelector('.grams').value=(f.portions?.[0]?.[1]||100);row.querySelector('.suggestions').hidden=true;calcRow(row)}
+function chooseFood(row,f){delete row.dataset.useSavedNutrition;delete row.dataset.recordNutrition;const later=row.querySelector('.nutritionLater');if(later){later.checked=false;row.querySelectorAll('.nutrition input').forEach(i=>i.disabled=false);}row.dataset.publicFoodSeq=Number(row.dataset.publicFoodSeq||0)+1;clearTimeout(publicFoodTimer);delete row.dataset.externalFood;const foodUnit=MealLogFoodCore.foodUnit(f);setFoodUnit(row,foodUnit);showFoodBarcode(row);const idx=FOOD_DB.indexOf(f);row.dataset.dbIndex=idx;row.querySelector('.name').value=f.name;const p=row.querySelector('.portion');p.innerHTML='';(f.portions||[['100'+foodUnit,100]]).forEach(([n,g])=>{let o=document.createElement('option');o.value=g;o.textContent=`${n} (${g}${foodUnit})`;p.appendChild(o)});p.hidden=false;row.querySelector('.dbBadge').hidden=false;row.querySelector('.grams').value=(f.portions?.[0]?.[1]||100);row.querySelector('.suggestions').hidden=true;calcRow(row)}
 let publicFoodTimer=0,publicFoodSeq=0;
 const BARCODE_CACHE_KEY='mealLogAI_barcode_products_v4';
 const BARCODE_LINK_KEY='mealLogAI_barcode_official_links_v1';
@@ -331,48 +360,112 @@ function saveBarcodeOfficialLink(barcodeProduct,officialFood){
 }
 
 function barcodeCache(){try{return JSON.parse(localStorage.getItem(BARCODE_CACHE_KEY)||'[]')}catch(_){return[]}}
-function canonicalProduct(f={}){const unit=publicUnit(f),amount=Math.max(1,num(f.productAmount)||num(f.displayAmount)||num(f.foodSize)||num(f.weight)||100),base=Math.max(1,num(f.nutritionBase)||num(f.weight)||100);return {...f,code:String(f.code||f.barcode||''),name:cleanPublicText(f.name)||'제품',maker:cleanMaker(f.maker),unit,productAmount:amount,displayAmount:amount,nutritionBase:base,nutritionUnit:f.nutritionUnit||unit,calories:num(f.calories),carbs:num(f.carbs),protein:num(f.protein),fat:num(f.fat)}}
-function rememberBarcodeProduct(f){f=canonicalProduct(f);if(!f?.name)return;let a=barcodeCache(),i=a.findIndex(x=>(f.code&&x.code===f.code)||norm(x.name)===norm(f.name));if(i>=0)f={...a[i],...f};a=a.filter((x,j)=>j!==i&&(f.code?x.code!==f.code:true)&&norm(x.name)!==norm(f.name));a.unshift(f);localStorage.setItem(BARCODE_CACHE_KEY,JSON.stringify(a.slice(0,80)))}
-function cachedBarcodeFoods(q){q=norm(q);if(!q)return[];return barcodeCache().filter(f=>norm(`${f.name||''} ${f.maker||''} ${f.barcodeName||''}`).includes(q)).slice(0,8)}
+function canonicalProduct(f={}){if(f.nutritionStatus==='unknown')return {...f,code:String(f.code||f.barcode||''),unit:publicUnit(f),productAmount:Number(f.displayAmount)||100,displayAmount:Number(f.displayAmount)||100,nutritionBase:Number(f.nutritionBase)||100,calories:null,carbs:null,protein:null,fat:null};const unit=publicUnit(f),amount=Math.max(1,num(f.productAmount)||num(f.displayAmount)||num(f.foodSize)||num(f.weight)||100),base=Math.max(0.000001,num(f.nutritionBase)||num(f.weight)||100);return {...f,code:String(f.code||f.barcode||''),name:cleanPublicText(f.name)||'제품',maker:cleanMaker(f.maker),unit,productAmount:amount,displayAmount:amount,nutritionBase:base,nutritionUnit:f.nutritionUnit||unit,calories:num(f.calories),carbs:num(f.carbs),protein:num(f.protein),fat:num(f.fat)}}
+function rememberBarcodeProduct(f){f=canonicalProduct(f);if(!f?.name)return;let a=barcodeCache(),i=a.findIndex(x=>f.code?String(x.code||x.barcode||'')===f.code:!x.code&&norm(x.name)===norm(f.name));if(i>=0)f={...a[i],...f};a=a.filter((x,j)=>j!==i);a.unshift(f);localStorage.setItem(BARCODE_CACHE_KEY,JSON.stringify(a.slice(0,80)))}
+function previousBarcodeProduct(code){
+ if(barcodeUserProducts()[code]?.deleted)return null;
+ const f=barcodeCache().find(x=>String(x.code||x.barcode||'').replace(/\D/g,'')===code&&x.name&&x.nutritionComplete!==false&&['calories','carbs','protein','fat'].every(k=>x[k]!=null&&x[k]!==''&&Number.isFinite(Number(x[k]))));
+ return f?canonicalProduct({...f,source:'cached',cachedSource:f.source,matchedOfficial:false}):null;
+}
+
+function cachedBarcodeFoods(q){if(!norm(q))return[];return MealLogFoodQuery.search(q,barcodeCache()).slice(0,8)}
 function num(v){const n=Number(v);return Number.isFinite(n)?n:0}
 function cleanPublicText(v){return String(v||'').replace(/^\s*[?？·•|]+\s*/,'').replace(/\s+/g,' ').trim()}
 function cleanMaker(v){let parts=cleanPublicText(v).split(/[,/·|]+/).map(x=>x.trim()).filter(Boolean),out=[];for(const x of parts){if(!out.some(y=>norm(y)===norm(x)))out.push(x)}return out.slice(0,2).join(' · ')}
-function publicUnit(f){const t=`${f.unit||''} ${f.foodSize||''} ${f.quantity||''} ${f.basis||''}`.toLowerCase();if(/ml|㎖|밀리리터/.test(t))return 'mL';if(/kg|킬로그램/.test(t))return 'kg';return 'g'}
-function calcExternalRow(row){let f;try{f=JSON.parse(row.dataset.externalFood||'null')}catch(_){f=null}if(!f)return;const amount=Math.max(0,num(row.querySelector('.grams').value)),base=Math.max(1,num(f.nutritionBase)||num(f.weight)||100),r=amount/base;row.querySelector('.calories').value=Math.round(num(f.calories)*r);row.querySelector('.carbs').value=(num(f.carbs)*r).toFixed(1);row.querySelector('.protein').value=(num(f.protein)*r).toFixed(1);row.querySelector('.fat').value=(num(f.fat)*r).toFixed(1)}
-function chooseExternalFood(row,f){delete row.dataset.dbIndex;f=canonicalProduct(f);if(currentBarcodeProduct&&f.source==='mfds'&&currentBarcodeProduct.code){const linked=saveBarcodeOfficialLink(currentBarcodeProduct,f);if(linked){f=linked;currentBarcodeProduct=null}}const name=f.name,maker=f.maker;row.querySelector('.name').value=name+(maker?` · ${maker}`:'');const unitName=f.unit,amount=f.displayAmount,base=f.nutritionBase,nutUnit=f.nutritionUnit||unitName;row.dataset.externalFood=JSON.stringify(f);row.querySelector('.grams').value=amount;row.querySelector('.grams').title=`섭취량: ${amount}${unitName} · 영양 기준: ${base}${nutUnit}`;const unit=row.querySelector('.amountUnit');if(unit)unit.textContent=unitName;calcExternalRow(row);row.querySelector('.portion').hidden=true;const badge=row.querySelector('.dbBadge');badge.hidden=false;const src=f.source==='mfds'?'식약처 DB':f.source==='mfds+linked'?'식약처 DB · 바코드 연결':f.source==='mfds+off'?'식약처+바코드 DB':f.source==='user-verified'?'내가 확인한 제품':'제품 DB';badge.textContent=`${src} · ${amount}${unitName} 입력 · 영양 ${base}${nutUnit} 기준`;row.querySelector('.suggestions').hidden=true;}
+function publicUnit(f){if(f.source==='recipe-reference'&&f.unit==='인분')return '인분';if((f.unitCorrected||f.source==='user-verified')&&['g','mL','kg','인분'].includes(f.unit))return f.unit;const t=`${f.unit||''} ${f.foodSize||''} ${f.quantity||''} ${f.basis||''}`.toLowerCase();if(/ml|㎖|밀리리터/.test(t))return 'mL';if(/kg|킬로그램/.test(t))return 'kg';return 'g'}
+
+function readFoodUnit(row){return ['g','mL','kg','인분'].includes(row.querySelector('.amountUnit')?.value)?row.querySelector('.amountUnit').value:'g'}
+function setFoodUnit(row,unit){const input=row.querySelector('.amountUnit');if(!input)return;const serving=input.querySelector('option[value="인분"]');if(unit==='인분'&&!serving){const option=document.createElement('option');option.value='인분';option.textContent='인분';input.append(option);}else if(unit!=='인분'&&serving)serving.remove();input.value=['g','mL','kg','인분'].includes(unit)?unit:'g'}
+function correctFoodUnit(row){
+ const unit=readFoodUnit(row);let previous={};try{previous=JSON.parse(row.dataset.externalFood||'{}')}catch(_){}
+ const amount=Math.max(0,Number(row.querySelector('.grams').value)||0),base=amount>0?amount:100;
+ const food={...previous,name:row.querySelector('.name').value,unit,nutritionUnit:unit,nutritionBase:base,weight:base,displayAmount:base,productAmount:base,unitCorrected:true,source:previous.source||'record'};
+ for(const field of ['calories','carbs','protein','fat'])food[field]=Math.max(0,Number(row.querySelector('.'+field).value)||0);
+ row.dataset.externalFood=JSON.stringify(food);delete row.dataset.dbIndex;row.querySelector('.portion').hidden=true;
+ const badge=row.querySelector('.dbBadge');badge.hidden=false;badge.textContent='단위 수정 · '+amount+unit+' 입력 · 영양 '+base+unit+' 기준';
+ row.querySelector('.grams').title='섭취량: '+amount+unit+' · 영양 기준: '+base+unit;
+ if(row.dataset.useSavedNutrition==='true')captureRecordNutrition(row);$('#status').textContent='단위를 바꿨어요. 양과 영양정보는 그대로예요. 포장지와 비교한 뒤 저장해 주세요.';
+}
+
+function calcExternalRow(row){let f;try{f=JSON.parse(row.dataset.externalFood||'null')}catch(_){f=null}if(!f)return;if(f.nutritionStatus==='unknown'){const later=row.querySelector('.nutritionLater');if(later){later.checked=true;row.querySelectorAll('.nutrition input').forEach(i=>{i.value='';i.disabled=true;});}return;}const amount=Math.max(0,num(row.querySelector('.grams').value)),base=Math.max(1,num(f.nutritionBase)||num(f.weight)||100),r=amount/base;const amountField=row.querySelector('.grams');amountField.title=`섭취량: ${amount}${f.unit||'g'} · 영양 기준: ${base}${f.nutritionUnit||f.unit||'g'}`;const badge=row.querySelector('.dbBadge');badge.textContent=badge.textContent.replace(/\d+(?:\.\d+)?(?:mL|kg|g|인분) 입력/,`${amount}${f.unit||'g'} 입력`);row.querySelector('.calories').value=Math.round(num(f.calories)*r);row.querySelector('.carbs').value=(num(f.carbs)*r).toFixed(1);row.querySelector('.protein').value=(num(f.protein)*r).toFixed(1);row.querySelector('.fat').value=(num(f.fat)*r).toFixed(1)}
+function showFoodBarcode(row,food){const label=row.querySelector('.barcodeNumber');if(!label)return;const code=String(food?.code||food?.barcode||'').replace(/\D/g,'');label.textContent=code?'바코드 '+code:'';label.hidden=!code;}
+function chooseExternalFood(row,f){delete row.dataset.useSavedNutrition;delete row.dataset.recordNutrition;const later=row.querySelector('.nutritionLater');if(later){later.checked=false;row.querySelectorAll('.nutrition input').forEach(i=>i.disabled=false);}row.dataset.publicFoodSeq=Number(row.dataset.publicFoodSeq||0)+1;clearTimeout(publicFoodTimer);delete row.dataset.dbIndex;f=canonicalProduct(f);if(currentBarcodeProduct&&f.source==='mfds'&&currentBarcodeProduct.code){const linked=saveBarcodeOfficialLink(currentBarcodeProduct,f);if(linked){f=linked;currentBarcodeProduct=null}}const name=f.name,maker=f.maker;row.querySelector('.name').value=name+(maker?` · ${maker}`:'');const unitName=f.unit,amount=f.displayAmount,base=f.nutritionBase,nutUnit=f.nutritionUnit||unitName;row.dataset.externalFood=JSON.stringify(f);showFoodBarcode(row,f);row.querySelector('.grams').value=amount;row.querySelector('.grams').title=`섭취량: ${amount}${unitName} · 영양 기준: ${base}${nutUnit}`;const unit=row.querySelector('.amountUnit');setFoodUnit(row,unitName);calcExternalRow(row);row.querySelector('.portion').hidden=true;const badge=row.querySelector('.dbBadge');badge.hidden=false;const src=f.source==='official-product-label'?'공식 판매페이지 표시':f.source==='recipe-reference'?'레시피 참고':f.source==='mfds-snapshot'?'식약처 공개 음식':f.source==='mfds'?'식약처 DB':f.source==='mfds+linked'?'식약처 DB · 바코드 연결':f.source==='mfds+off'?'식약처+바코드 DB':f.source==='user-verified'?'내가 확인한 제품':f.source==='cached'?'이전 조회 정보':'제품 DB';badge.textContent=`${src} · ${amount}${unitName} 입력 · 영양 ${base}${nutUnit} 기준`;if(f.source==='recipe-reference')$('#status').textContent='레시피의 1인분 참고값이에요. 조리법과 먹은 양에 맞게 수정해 주세요.';row.querySelector('.suggestions').hidden=true;window.MealLogBarcodeEntry?.portions(row,f);}
 // v6.9.3 replacement block: replace appendPublicSuggestions + showSuggestions in app.js
-async function appendPublicSuggestions(row,q,seq){
+async function appendPublicSuggestions(row,q,seq,page=1,seen=new Set()){
   const box=row.querySelector('.suggestions');
   try{
-    const r=await fetch(`/api/food-search?q=${encodeURIComponent(q)}&t=${Date.now()}`,{cache:'no-store'});
+    const r=await fetch('/api/food-search?q='+encodeURIComponent(q)+'&page='+page,{cache:'no-store'});
+    if(!r.ok)throw Error('SEARCH_HTTP');
     const d=await r.json();
     if(seq!==Number(row.dataset.publicFoodSeq||0)||!document.body.contains(row))return;
-    box.querySelector('.publicLoading')?.remove();
-    (d.items||[]).slice(0,12).forEach(f=>{let b=document.createElement('button');b.type='button';b.className='suggestion remoteSuggestion';b.innerHTML=`<span class="suggestionText"><b>${cleanPublicText(f.name)}</b><small>${f.source==='mfds'?'식약처 DB · ':f.source==='off'?'제품 DB · ':''}${cleanMaker(f.maker)?cleanMaker(f.maker)+' · ':''}${cleanPublicText(f.foodSize||f.basis)?cleanPublicText(f.foodSize||f.basis)+' 기준 · ':''}${Math.round(num(f.calories))} kcal · 탄 ${num(f.carbs).toFixed(1)}g · 단 ${num(f.protein).toFixed(1)}g · 지 ${num(f.fat).toFixed(1)}g</small></span><span class="suggestionPlus">+</span>`;b.onclick=()=>chooseExternalFood(row,f);box.appendChild(b)});
-    box.hidden=!box.children.length;
-    const st=$('#publicDbState');if(st)st.textContent='식약처 공공DB 연결됨';
+    box.querySelectorAll('.publicLoading,.publicMore').forEach(x=>x.remove());
+    const items=(d.items||[]).filter(f=>{const key=MealLogFoodQuery.key(f);if(seen.has(key))return false;seen.add(key);return true;});
+    let offset=0;
+    function more(){
+      box.querySelector('.publicMore')?.remove();
+      items.slice(offset,offset+12).forEach(f=>{
+        const b=document.createElement('button');b.type='button';b.className='suggestion remoteSuggestion';
+        const text=document.createElement('span');text.className='suggestionText';
+        const title=document.createElement('b');title.textContent=cleanPublicText(f.name);
+        const detail=document.createElement('small');
+        detail.textContent=(cleanMaker(f.maker)?cleanMaker(f.maker)+' · ':'')+MealLogQuality.candidateDetails(f);
+        text.append(title,detail);const plus=document.createElement('span');plus.className='suggestionPlus';plus.textContent='+';b.append(text,plus);
+        b.onclick=()=>chooseExternalFood(row,f);box.appendChild(b);
+      });
+      offset+=12;
+      if(offset<items.length||d.nextPage){
+        const b=document.createElement('button');b.type='button';b.className='suggestion publicMore';b.textContent='검색 결과 더 보기';
+        b.onclick=e=>{e.stopPropagation();if(offset<items.length)more();else{b.disabled=true;b.textContent='더 찾고 있어요…';appendPublicSuggestions(row,q,seq,d.nextPage,seen);}};box.appendChild(b);
+      }
+      box.hidden=!box.children.length;
+    }
+    more();
+    if(!box.children.length){const empty=document.createElement('div');empty.className='suggestion';empty.textContent='찾는 제품이 없으면 바코드를 스캔하거나 직접 입력해 주세요.';box.appendChild(empty);box.hidden=false;}
+    const st=$('#publicDbState');if(st)st.textContent=d.errors?.length?'일부 제품 DB 연결 지연':'식품·제품 DB 연결됨';
   }catch(_){
-    box.querySelector('.publicLoading')?.remove();box.hidden=!box.children.length;
-    const st=$('#publicDbState');if(st)st.textContent='공공DB 연결 확인 필요';
-  }
-}
-function showSuggestions(row,q){
-  const box=row.querySelector('.suggestions'),ms=findFoods(q);box.innerHTML='';
-  if(!q){box.hidden=true;return}
-  ms.forEach(f=>{let b=document.createElement('button');b.type='button';b.className='suggestion';b.innerHTML=`<span class="suggestionText"><b>${f.name}</b><small>앱 기본DB · 100g 기준 ${f.calories} kcal · 탄 ${f.carbs}g · 단 ${f.protein}g · 지 ${f.fat}g</small></span><span class="suggestionPlus">+</span>`;b.onclick=()=>chooseFood(row,f);box.appendChild(b)});
-  cachedBarcodeFoods(q).forEach(f=>{let b=document.createElement('button');b.type='button';b.className='suggestion';b.innerHTML=`<span class="suggestionText"><b>${cleanPublicText(f.name)}</b><small>최근 바코드 제품${cleanMaker(f.maker)?' · '+cleanMaker(f.maker):''} · ${Math.round(num(f.calories))} kcal</small></span><span class="suggestionPlus">+</span>`;b.onclick=()=>chooseExternalFood(row,f);box.appendChild(b)});
-  box.hidden=!box.children.length;
-  if(norm(q).length>=2){
-    clearTimeout(publicFoodTimer);
-    const seq=Number(row.dataset.publicFoodSeq||0)+1;row.dataset.publicFoodSeq=seq;
-    let loading=document.createElement('div');loading.className='suggestion publicLoading';loading.innerHTML='<span class="suggestionText"><b>공식 영양정보 검색 중…</b><small>식약처 공공데이터에서 확인하고 있어요.</small></span>';box.appendChild(loading);box.hidden=false;
-    publicFoodTimer=setTimeout(()=>appendPublicSuggestions(row,q,seq),300);
+    if(seq!==Number(row.dataset.publicFoodSeq||0))return;
+    box.querySelectorAll('.publicLoading,.publicMore').forEach(x=>x.remove());box.hidden=!box.children.length;
+    const st=$('#publicDbState');if(st)st.textContent='제품 DB 연결 확인 필요';
   }
 }
 
-function addFood(f={}){let d=document.createElement('div');d.className='foodRow';d.innerHTML=`<button type="button" class="removeFood">×</button><div class="foodTop"><div class="foodNameWrap"><input class="name" placeholder="음식명 또는 메뉴를 검색하세요" autocomplete="off" value="${f.name||''}"><div class="suggestions" hidden></div></div><div class="amountInput"><input class="grams" type="number" min="0" placeholder="100" value="${f.grams||''}"><span class="amountUnit">g</span></div></div><div class="portionBar"><select class="portion" hidden></select><span class="dbBadge" hidden>영양 자동 계산</span></div><div class="nutrition"><label class="nutriField"><span>칼로리</span><div><input class="calories" type="number" min="0" step="1" placeholder="0" value="${f.calories??''}"><em>kcal</em></div></label><label class="nutriField"><span>탄수화물</span><div><input class="carbs" type="number" min="0" step="0.1" placeholder="0.0" value="${f.carbs??''}"><em>g</em></div></label><label class="nutriField"><span>단백질</span><div><input class="protein" type="number" min="0" step="0.1" placeholder="0.0" value="${f.protein??''}"><em>g</em></div></label><label class="nutriField"><span>지방</span><div><input class="fat" type="number" min="0" step="0.1" placeholder="0.0" value="${f.fat??''}"><em>g</em></div></label></div>`;$('#foods').appendChild(d);let name=d.querySelector('.name'),g=d.querySelector('.grams'),p=d.querySelector('.portion');name.oninput=()=>{delete d.dataset.dbIndex;delete d.dataset.externalFood;p.hidden=true;d.querySelector('.dbBadge').hidden=true;showSuggestions(d,name.value)};name.onfocus=()=>showSuggestions(d,name.value);g.oninput=()=>d.dataset.externalFood?calcExternalRow(d):calcRow(d);p.onchange=()=>{g.value=p.value;calcRow(d)};d.querySelector('.removeFood').onclick=()=>document.querySelectorAll('.foodRow').length>1?d.remove():null;if(f.barcodeProduct){d.dataset.externalFood=JSON.stringify(f.barcodeProduct);const unit=d.querySelector('.amountUnit');if(unit)unit.textContent=f.barcodeProduct.unit||'g';const badge=d.querySelector('.dbBadge');badge.hidden=false;badge.textContent='바코드 제품 · 저장된 영양정보';}if(f.name){let ex=FOOD_DB.find(x=>norm(x.name)===norm(f.name));if(ex&&!f.calories&&!f.barcodeProduct)chooseFood(d,ex)}}
+function rootKoreanFoods(q){return globalThis.MealLogKoreanFoods?.search(q)||[]}
+function suggestionButton(name,detail,onChoose){const button=document.createElement('button');button.type='button';button.className='suggestion';const text=document.createElement('span');text.className='suggestionText';const title=document.createElement('b'),description=document.createElement('small'),plus=document.createElement('span');title.textContent=String(name??'');description.textContent=String(detail??'');plus.className='suggestionPlus';plus.textContent='+';text.append(title,description);button.append(text,plus);button.onclick=onChoose;return button;}
+function showSuggestions(row,q){
+  const box=row.querySelector('.suggestions'),ms=findFoods(q);box.innerHTML='';
+  clearTimeout(publicFoodTimer);row.dataset.publicFoodSeq=Number(row.dataset.publicFoodSeq||0)+1;
+  if(!q){box.hidden=true;return}
+  ms.forEach(f=>box.append(suggestionButton(f.name,'앱 기본DB · 100'+MealLogFoodCore.foodUnit(f)+' 기준 '+f.calories+' kcal · 탄 '+f.carbs+'g · 단 '+f.protein+'g · 지 '+f.fat+'g',()=>chooseFood(row,f))));
+
+  const korean=rootKoreanFoods(q),koreanMore=document.createElement('button');let koreanOffset=0;
+  function appendKorean(){koreanMore.remove();korean.slice(koreanOffset,koreanOffset+12).forEach(f=>{
+    const b=document.createElement('button');b.type='button';b.className='suggestion';const text=document.createElement('span');text.className='suggestionText';const title=document.createElement('b'),detail=document.createElement('small');title.textContent=f.name+(f.maker?' · '+f.maker:'');detail.textContent=MealLogQuality.candidateDetails(f);text.append(title,detail);const plus=document.createElement('span');plus.className='suggestionPlus';plus.textContent='+';b.append(text,plus);b.onclick=()=>chooseExternalFood(row,f);box.append(b);
+  });koreanOffset+=12;if(koreanOffset<korean.length){koreanMore.type='button';koreanMore.className='suggestion koreanMore';koreanMore.textContent='음식 더 보기 ('+korean.length+'개)';koreanMore.onclick=e=>{e.stopPropagation();appendKorean()};box.append(koreanMore);}}
+  appendKorean();
+
+  cachedBarcodeFoods(q).forEach(f=>box.append(suggestionButton(cleanPublicText(f.name),'최근 바코드 제품'+(cleanMaker(f.maker)?' · '+cleanMaker(f.maker):'')+' · '+Math.round(num(f.calories))+' kcal',()=>chooseExternalFood(row,f))));
+  box.hidden=!box.children.length;
+  if(norm(q).length>=2){
+    clearTimeout(publicFoodTimer);
+    const seq=Number(row.dataset.publicFoodSeq||0)+1;row.dataset.publicFoodSeq=seq;const seen=new Set([...ms,...korean,...cachedBarcodeFoods(q)].map(MealLogFoodQuery.key));
+    let loading=document.createElement('div');loading.className='suggestion publicLoading';loading.innerHTML='<span class="suggestionText"><b>공식 영양정보 검색 중…</b><small>식약처 공공데이터에서 확인하고 있어요.</small></span>';box.appendChild(loading);box.hidden=false;
+    publicFoodTimer=setTimeout(()=>appendPublicSuggestions(row,q,seq,1,seen),300);
+  }
+}
+
+function addFood(f={}){f={...f,name:String(f.name||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')};let d=document.createElement('div');d.className='foodRow';d.dataset.nutritionStatus=f.nutritionStatus||'complete';d.innerHTML=`<button type="button" class="removeFood">×</button><div class="foodTop"><div class="foodNameWrap"><input class="name" placeholder="무엇을 드셨나요?" autocomplete="off" value="${f.name||''}"><div class="suggestions" hidden></div></div><div class="amountInput"><input class="grams" type="number" min="0" step="any" placeholder="100" value="${f.grams||''}"><select class="amountUnit" aria-label="섭취량 단위"><option value="g">g</option><option value="mL">mL</option><option value="kg">kg</option></select></div></div><div class="barcodeNumber" hidden></div><div class="portionBar"><select class="portion" hidden></select><span class="dbBadge" hidden>영양 자동 계산</span></div><div class="nutrition"><label class="nutriField"><span>칼로리</span><div><input class="calories" type="number" min="0" step="any" placeholder="0" value="${f.calories??''}"><em>kcal</em></div></label><label class="nutriField"><span>탄수화물</span><div><input class="carbs" type="number" min="0" step="any" placeholder="0.0" value="${f.carbs??''}"><em>g</em></div></label><label class="nutriField"><span>단백질</span><div><input class="protein" type="number" min="0" step="any" placeholder="0.0" value="${f.protein??''}"><em>g</em></div></label><label class="nutriField"><span>지방</span><div><input class="fat" type="number" min="0" step="any" placeholder="0.0" value="${f.fat??''}"><em>g</em></div></label></div>`;$('#foods').appendChild(d);let name=d.querySelector('.name'),g=d.querySelector('.grams'),p=d.querySelector('.portion');name.oninput=()=>{delete d.dataset.useSavedNutrition;delete d.dataset.recordNutrition;delete d.dataset.dbIndex;delete d.dataset.externalFood;showFoodBarcode(d);p.hidden=true;d.querySelector('.dbBadge').hidden=true;showSuggestions(d,name.value)};name.onfocus=()=>showSuggestions(d,name.value);d.querySelector('.amountUnit').onchange=()=>correctFoodUnit(d);g.oninput=()=>{if(d.querySelector('.nutritionLater')?.checked)return;if(d.dataset.useSavedNutrition==='true')calcRecordNutrition(d);else if(d.dataset.externalFood)calcExternalRow(d);else calcRow(d);};g.onchange=g.oninput;for(const k of ['calories','carbs','protein','fat'])d.querySelector('.'+k).addEventListener('input',()=>{d.dataset.useSavedNutrition='true';captureRecordNutrition(d);});if(Number(f.grams)>0&&f.nutritionStatus!=='unknown'&&['calories','carbs','protein','fat'].every(k=>f[k]!=null&&f[k]!==''&&Number.isFinite(Number(f[k])))){d.dataset.useSavedNutrition='true';}p.onchange=()=>{g.value=p.value;calcRow(d)};d.querySelector('.removeFood').onclick=()=>document.querySelectorAll('.foodRow').length>1?d.remove():null;if(f.barcodeProduct){showFoodBarcode(d,f.barcodeProduct);d.dataset.externalFood=JSON.stringify(f.barcodeProduct);const unit=d.querySelector('.amountUnit');setFoodUnit(d,f.barcodeProduct.unit||'g');const badge=d.querySelector('.dbBadge');badge.hidden=false;badge.textContent=f.barcodeProduct.source==='record'?'이전 기록 · 저장된 영양정보':'바코드 제품 · 저장된 영양정보';}if(f.unit)setFoodUnit(d,f.unit);if(f.name){let ex=FOOD_DB.find(x=>norm(x.name)===norm(f.name));if(ex&&f.calories==null&&!f.barcodeProduct&&f.nutritionStatus!=='unknown')chooseFood(d,ex)}if(d.dataset.useSavedNutrition==='true')captureRecordNutrition(d);window.MealLogBarcodeEntry?.portions(d,f.barcodeProduct);}
 document.addEventListener('click',e=>{if(!e.target.closest('.foodNameWrap'))document.querySelectorAll('.suggestions').forEach(x=>x.hidden=true)});
-let photoPreviewUrl='';
+let photoPreviewUrl='',photoLoadVersion=0,photoLoading=false,photoRotationBase='',photoRotationTurns=0;
+function cancelPhotoLoad(){photoLoadVersion++;photoLoading=false;photoRotationBase='';photoRotationTurns=0;$('#saveTop').disabled=false;photoRotationControls();}
+function photoRotationControls(){for(const id of ['#rotatePhotoLeft','#rotatePhotoRight']){const b=$(id);if(b){b.hidden=!photoData;b.disabled=photoLoading||!photoData;}}}
+async function rotateMealPhoto(direction){
+ if(photoLoading||!photoData)return;
+ const version=++photoLoadVersion,base=photoRotationBase||photoData,next=(photoRotationTurns+direction+4)%4;
+ photoLoading=true;$('#saveTop').disabled=true;$('#analyzeBtn').disabled=true;photoRotationControls();$('#status').textContent='사진을 회전하고 있어요…';
+ try{const result=await MealLogPhoto.rotate(await MealLogPhotoStorage.resolve(base),next);if(version!==photoLoadVersion)return;photoRotationBase=base;photoRotationTurns=next;photoData=result;clearPreviewUrl();setPhotoUI();$('#status').textContent='사진을 회전했어요. 저장하면 이 방향으로 남아요.';}
+ catch(error){if(version===photoLoadVersion){setPhotoUI();$('#status').textContent='사진을 회전하지 못했어요. 원래 사진은 유지했으니 다시 시도하거나 사진을 새로 선택해 주세요.';}}
+ finally{if(version===photoLoadVersion){photoLoading=false;$('#saveTop').disabled=false;$('#analyzeBtn').disabled=!photoData;photoRotationControls();}}
+}
 function setPhotoUI(previewSrc=''){
   const img=$('#preview'), text=$('#photoText');
   const src=previewSrc||photoData||'';
@@ -381,17 +474,38 @@ function setPhotoUI(previewSrc=''){
   img.style.display=has?'block':'none';
   text.hidden=has;
   text.style.display=has?'none':'';
-  $('#removePhoto').hidden=!has;
+  $('#removePhoto').hidden=!has;photoRotationControls();
   $('#analyzeBtn').disabled=!photoData;
   if(has) img.src=src; else img.removeAttribute('src');
 }
 function clearPreviewUrl(){ if(photoPreviewUrl){try{URL.revokeObjectURL(photoPreviewUrl)}catch(_){ } photoPreviewUrl='';} }
-function showMealModal(){const d=$('#mealDialog');d.hidden=false;d.classList.add('isOpen');document.documentElement.classList.add('mealModalOpen');document.body.classList.add('mealModalOpen');setTimeout(()=>$('#cancelBtn')?.focus({preventScroll:true}),0)}
-function hideMealModal(){const d=$('#mealDialog');d.classList.remove('isOpen');d.hidden=true;document.documentElement.classList.remove('mealModalOpen');document.body.classList.remove('mealModalOpen')}
-function updateMealSearchPlaceholder(){const type=$('#mealType')?.value||'아침';const text=type==='간식'?'간식으로 무엇을 드셨나요?':`${type} 식사로 무엇을 드셨나요?`;document.querySelectorAll('#foods .foodRow .name').forEach(i=>{if(!i.value)i.placeholder=text})}
-function openNewMeal(){editingMealId=null;photoData='';$('#dialogTitle').textContent='음식 기록';$('#saveTop').textContent='저장';$('#photo').value='';$('#mealType').value='아침';$('#mealTime').value=defaultTimeForDate(selectedDate);$('#foods').innerHTML='';addFood();updateMealSearchPlaceholder();$('#memo').value='';$('#status').textContent='';setPhotoUI();showMealModal()}
-function openMealEditor(m){editingMealId=m.id;photoData=m.photo||'';$('#dialogTitle').textContent='식사 기록 수정';$('#saveTop').textContent='수정 저장';$('#photo').value='';$('#mealType').value=m.type||'아침';$('#mealTime').value=m.time||defaultTimeForDate(selectedDate);$('#foods').innerHTML='';(m.foods&&m.foods.length?m.foods:[{}]).forEach(addFood);$('#memo').value=m.memo||'';updateMealSearchPlaceholder();$('#status').textContent='사진과 식사 내용을 수정할 수 있어요.';setPhotoUI();showMealModal()}
-$('#addBtn').onclick=openNewMeal;
+function showMealModal(){const d=$('#mealDialog');d.hidden=false;d.classList.add('isOpen');document.documentElement.classList.add('mealModalOpen');document.body.classList.add('mealModalOpen');setTimeout(()=>{if(!d.contains(document.activeElement))$('#cancelBtn')?.focus({preventScroll:true});},0)}
+function hideMealModal(){cancelPhotoLoad();const d=$('#mealDialog');d.classList.remove('isOpen');d.hidden=true;document.documentElement.classList.remove('mealModalOpen');document.body.classList.remove('mealModalOpen')}
+function updateMealSearchPlaceholder(){const text='무엇을 드셨나요?';document.querySelectorAll('#foods .foodRow .name').forEach(i=>{if(!i.value)i.placeholder=text})}
+
+let repeatFoodMode='recent';
+function renderRepeatFoods(){
+ const box=$('#repeatFoods');if(!box)return;box.replaceChildren();
+ const choices=MealLogRepeat.ranked(state.meals,'food',repeatFoodMode);
+ for(const mode of ['recent','frequent'])$('#repeatFood'+(mode==='recent'?'Recent':'Frequent')).setAttribute('aria-pressed',String(mode===repeatFoodMode));
+ if(!choices.length){const p=document.createElement('p');p.className='muted';p.textContent='음식을 기록하면 여기에 모아 드려요.';box.append(p);return;}
+ for(const item of choices){const b=document.createElement('button');b.type='button';b.className='repeatChoice';const title=document.createElement('strong'),detail=document.createElement('small');title.textContent=item.value.name;detail.textContent=(Number(item.value.grams)||0)+(item.value.unit||item.value.barcodeProduct?.unit||'g')+' · '+Math.round(Number(item.value.calories)||0)+' kcal'+(repeatFoodMode==='frequent'?' · '+item.count+'번 기록':'');b.append(title,detail);b.onclick=()=>{
+  const f=structuredClone(item.value);let row=[...document.querySelectorAll('#foods .foodRow')].find(r=>!r.querySelector('.name').value.trim()&&['grams','calories','carbs','protein','fat'].every(k=>!Number(r.querySelector('.'+k).value)));
+  if(!row){addFood();row=document.querySelector('#foods .foodRow:last-child');}
+  delete row.dataset.dbIndex;delete row.dataset.externalFood;row.querySelector('.portion').hidden=true;
+  for(const k of ['name','grams','calories','carbs','protein','fat'])row.querySelector('.'+k).value=f[k]??'';
+  const unit=f.unit||f.barcodeProduct?.unit||'g',amount=Number(f.grams)||0;setFoodUnit(row,unit);
+  if(amount>0)row.dataset.externalFood=JSON.stringify({...f.barcodeProduct,source:f.barcodeProduct?.source||'record',name:f.name,unit,nutritionUnit:unit,nutritionBase:amount,weight:amount,calories:Number(f.calories)||0,carbs:Number(f.carbs)||0,protein:Number(f.protein)||0,fat:Number(f.fat)||0});
+  row.querySelector('.suggestions').hidden=true;if(amount<=0)row.dataset.dbIndex='-1';showFoodBarcode(row,f.barcodeProduct);const badge=row.querySelector('.dbBadge');badge.hidden=false;badge.textContent='이전 기록 · '+amount+unit+' 입력';
+  $('#status').textContent='이전 음식을 불러왔어요. 양을 확인한 뒤 저장해 주세요.';updateMealSearchPlaceholder();
+ };box.append(b);}
+}
+$('#repeatFoodRecent').onclick=()=>{repeatFoodMode='recent';renderRepeatFoods()};
+$('#repeatFoodFrequent').onclick=()=>{repeatFoodMode='frequent';renderRepeatFoods()};
+
+function openNewMeal(){cancelPhotoLoad();editingMealId=null;photoData='';$('#dialogTitle').textContent='음식 기록';$('#saveTop').textContent='저장';$('#photo').value='';$('#mealType').value='아침';$('#mealTime').value=defaultTimeForDate(selectedDate);$('#foods').innerHTML='';addFood();updateMealSearchPlaceholder();$('#memo').value='';$('#status').textContent='';setPhotoUI();renderRepeatFoods();showMealModal()}
+function openMealEditor(m){cancelPhotoLoad();editingMealId=m.id;photoData=m.photo||'';$('#dialogTitle').textContent='식사 기록 수정';$('#saveTop').textContent='수정 저장';$('#photo').value='';$('#mealType').value=m.type||'아침';$('#mealTime').value=m.time||defaultTimeForDate(selectedDate);$('#foods').innerHTML='';(m.foods&&m.foods.length?m.foods:[{}]).forEach(addFood);$('#memo').value=m.memo||'';updateMealSearchPlaceholder();$('#status').textContent='사진과 식사 내용을 수정할 수 있어요.';setPhotoUI();renderRepeatFoods();showMealModal()}
+$('#closeMealDetails').onclick=()=>{selectedMealType=null;render();};
 // v6.1: clicking the backdrop must NOT close the meal editor.
 // This prevents accidental loss of a meal while scrolling/tapping on mobile.
 // v6.4: the meal editor is a normal fixed overlay instead of <dialog> for iPhone Safari stability.
@@ -417,11 +531,37 @@ const modeSearchBtn=$('#modeSearch'), modePhotoBtn=$('#modePhoto'), modeAIBtn=$(
 if(modeSearchBtn) modeSearchBtn.onclick=()=>setEntryMode('search');
 if(modePhotoBtn) modePhotoBtn.onclick=()=>setEntryMode('photo');
 if(modeAIBtn) modeAIBtn.onclick=()=>setEntryMode('ai');
-let barcodeStream=null,barcodeLoop=0,currentBarcodeProduct=null,barcodeReader=null,barcodeDetected=false;
+let barcodeLookupVersion=0,barcodeStream=null,barcodeLoop=0,currentBarcodeProduct=null,barcodeReader=null,barcodeDetected=false;
 function stopBarcodeCamera(){barcodeLoop++;if(barcodeReader){try{barcodeReader.reset()}catch(_){}barcodeReader=null}if(barcodeStream){barcodeStream.getTracks().forEach(t=>t.stop());barcodeStream=null}const v=$('#barcodeVideo');if(v){v.pause();v.srcObject=null;v.hidden=true}}
-function closeBarcode(){stopBarcodeCamera();$('#barcodePanel').hidden=true}
+function closeBarcode(){window.MealLogBarcodeEntry?.hide();barcodeLookupVersion++;stopBarcodeCamera();$('#barcodePanel').hidden=true}
 async function autoLinkBarcodeFood(product){try{const raw=cleanPublicText(product?.name||'');const q=raw.replace(/\b\d+(?:\.\d+)?\s*(?:ml|g|kg|l)\b/ig,'').trim();if(!q)return null;const r=await fetch(`/api/food-search?q=${encodeURIComponent(q)}&t=${Date.now()}`,{cache:'no-store'});const d=await r.json();const key=s=>norm(cleanPublicText(s)).replace(/[^a-z0-9가-힣]/g,'').replace(/\d+(?:ml|g|kg|l)$/i,'');const target=key(q);const matches=(d.items||[]).filter(x=>x.source==='mfds').map(x=>({x,k:key(x.name)})).filter(v=>v.k&&(v.k===target||target.includes(v.k)||v.k.includes(target))).sort((a,b)=>Math.abs(a.k.length-target.length)-Math.abs(b.k.length-target.length));return matches[0]?.x||null}catch(_){return null}}
-async function lookupBarcode(code){code=String(code||'').replace(/\D/g,'');if(code.length<8){$('#barcodeStatus').textContent='바코드 번호를 8자리 이상 입력해주세요.';return}$('#barcodeStatus').textContent='제품을 찾는 중이에요…';try{const deletedLocal=barcodeUserProducts()[code]?.deleted;const saved=linkedBarcodeProduct(code);if(saved){currentBarcodeProduct=saved;rememberBarcodeProduct(saved);let row=document.querySelector('#foods .foodRow:last-child');if(!row){addFood();row=document.querySelector('#foods .foodRow:last-child')}chooseExternalFood(row,saved);$('#barcodeStatus').textContent=`${saved.name||'제품'} · 저장된 식약처 영양정보를 불러왔어요.`;setTimeout(closeBarcode,500);return}const r=await fetch(`/api/barcode?code=${encodeURIComponent(code)}&t=${Date.now()}`,{cache:'no-store'});const d=await r.json();if(!r.ok||!d.found){currentBarcodeProduct=null;$('#barcodeStatus').textContent='제품을 찾지 못했어요. 아래 음식 검색에서 제품명을 검색해 연결해주세요.';return}let row=document.querySelector('#foods .foodRow:last-child');if(!row){addFood();row=document.querySelector('#foods .foodRow:last-child')}const product=canonicalProduct({...d,code,name:d.name||`바코드 ${code}`,maker:d.maker});const official=await autoLinkBarcodeFood(product);if(official){const linked=saveBarcodeOfficialLink(product,official);if(linked){currentBarcodeProduct=null;rememberBarcodeProduct(linked);chooseExternalFood(row,linked);$('#barcodeStatus').textContent=`${linked.name||'제품'} · 식약처 영양정보를 자동 연결했어요.`;setTimeout(closeBarcode,500);return}}currentBarcodeProduct=product;rememberBarcodeProduct(product);chooseExternalFood(row,product);$('#barcodeStatus').textContent=d.matchedOfficial?`${d.name||'제품'} · 식약처 DB와 연결했어요.`:`${d.name||'제품'}을 불러왔어요. 제품명을 검색해서 정확한 식약처 제품을 한 번 선택해주세요.`;setTimeout(closeBarcode,500)}catch(_){currentBarcodeProduct=null;$('#barcodeStatus').textContent='바코드 조회 중 오류가 발생했어요.'}}
+async function lookupBarcode(code){
+ code=String(code||'').replace(/\D/g,'');
+ if(!/^(?:\d{8}|\d{12,14})$/.test(code)){$('#barcodeStatus').textContent='바코드 번호를 확인해 주세요. 8·12·13·14자리 번호를 입력할 수 있어요.';return;}
+ const ticket=++barcodeLookupVersion;window.MealLogBarcodeEntry?.hide();
+ let row=document.querySelector('#foods .foodRow:last-child');if(!row){addFood();row=document.querySelector('#foods .foodRow:last-child');}
+ $('#barcodeStatus').textContent='제품을 찾는 중이에요…';
+ function restorePrevious(){
+  if(ticket!==barcodeLookupVersion||!document.body.contains(row))return false;
+  const previous=previousBarcodeProduct(code);if(!previous)return false;
+  currentBarcodeProduct=previous;chooseExternalFood(row,previous);
+  $('#barcodeStatus').textContent='이 기기에서 이전에 조회한 정보를 불러왔어요. 포장지의 제품명과 영양정보를 확인해 주세요.';
+  setTimeout(()=>{if(ticket===barcodeLookupVersion)closeBarcode();},1200);return true;
+ }
+ try{
+  const saved=linkedBarcodeProduct(code);
+  let d=saved;
+  if(!saved){const r=await fetch('/api/barcode?code='+encodeURIComponent(code),{cache:'no-store'});d=await r.json();if(!r.ok){if(restorePrevious())return;if(r.status===404&&ticket===barcodeLookupVersion)window.MealLogBarcodeEntry?.offer({code,row,valid:()=>ticket===barcodeLookupVersion&&document.body.contains(row)});if(ticket===barcodeLookupVersion)$('#barcodeStatus').textContent=r.status===404?'등록된 제품이 없어요. 음식명으로 검색하거나 직접 입력해 주세요.':'제품 조회에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.';return;}}
+  if(ticket!==barcodeLookupVersion||!document.body.contains(row))return;
+  if(!d||d.found===false){window.MealLogBarcodeEntry?.offer({code,row,valid:()=>ticket===barcodeLookupVersion&&document.body.contains(row)});$('#barcodeStatus').textContent='등록된 제품이 없어요. 음식명으로 검색하거나 직접 입력해 주세요.';return;}
+  if(d.nutritionComplete===false){if(restorePrevious())return;window.MealLogBarcodeEntry?.offer({code,row,product:d,valid:()=>ticket===barcodeLookupVersion&&document.body.contains(row)});currentBarcodeProduct=null;$('#barcodeStatus').textContent=(d.name||'제품')+'의 영양정보가 부족해요. 음식명으로 검색하거나 포장지의 값을 직접 입력해 주세요.';return;}
+  const product=canonicalProduct({...d,code});currentBarcodeProduct=d.matchedOfficial||saved?null:product;
+  rememberBarcodeProduct(product);chooseExternalFood(row,product);
+  $('#barcodeStatus').textContent=(product.name||'제품')+'을 불러왔어요. 포장 용량과 영양정보를 확인해 주세요.';
+  setTimeout(()=>{if(ticket===barcodeLookupVersion)closeBarcode();},700);
+ }catch{if(restorePrevious())return;if(ticket===barcodeLookupVersion){currentBarcodeProduct=null;$('#barcodeStatus').textContent='제품 조회에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.';}}
+}
+
 function loadBarcodeScannerLibrary(){
   if(window.ZXing?.BrowserMultiFormatReader)return Promise.resolve();
   if(window.mealBarcodeLibraryPromise)return window.mealBarcodeLibraryPromise;
@@ -444,6 +584,7 @@ async function barcodeScanned(raw){
   await lookupBarcode(code);
 }
 async function openBarcode(){
+  barcodeLookupVersion++;window.MealLogBarcodeEntry?.hide();
   const p=$('#barcodePanel');p.hidden=false;
   barcodeDetected=false;
   stopBarcodeCamera();
@@ -489,6 +630,22 @@ async function openBarcode(){
 }
 $('#barcodeBtn').onclick=openBarcode;$('#barcodeClose').onclick=closeBarcode;$('#barcodeLookup').onclick=()=>lookupBarcode($('#barcodeInput').value);$('#barcodeInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();lookupBarcode(e.target.value)}});
 $('#mealType').addEventListener('change',updateMealSearchPlaceholder);
+$('#stepsCancel').onclick=()=>$('#stepsDialog').close();
+$('#stepsForm').onsubmit=async e=>{
+ e.preventDefault();const input=$('#stepsInput'),v=Number(input.value),dialog=$('#stepsDialog'),day=dialog.dataset.date,button=$('#stepsApply');
+ if(button.disabled)return;
+ if(!input.value.trim()||!Number.isInteger(v)||v<0||v>100000){$('#stepsInputError').textContent='0~100,000 사이의 걸음 수를 입력해 주세요.';return;}
+ if(day!==selectedDate){$('#stepsInputError').textContent='날짜가 변경됐어요. 창을 닫고 다시 입력해 주세요.';return;}
+ button.disabled=true;button.textContent='저장 중…';input.disabled=true;$('#stepsCancel').disabled=true;
+ document.querySelectorAll('[data-step-plus]').forEach(b=>b.disabled=true);$('#stepsInputError').textContent='';
+ try{
+  if(window.mealRecordSteps)await window.mealRecordSteps(day,v);
+  else{activityFor(day).steps=v;save();renderActivity();}
+  dialog.close();
+ }catch(error){$('#stepsInputError').textContent=error.message||'저장하지 못했어요. 연결을 확인하고 다시 시도해 주세요.';}
+ finally{button.disabled=false;button.textContent='걸음 기록하기';input.disabled=false;$('#stepsCancel').disabled=false;document.querySelectorAll('[data-step-plus]').forEach(b=>b.disabled=false);}
+};
+document.querySelectorAll('[data-step-plus]').forEach(b=>b.onclick=()=>{$('#stepsInput').value=Math.min(100000,Math.max(0,Number($('#stepsInput').value)||0)+Number(b.dataset.stepPlus));$('#stepsInputError').textContent='';});
 $('#editSteps').onclick=setSteps;document.querySelectorAll('[data-water]').forEach(b=>b.onclick=()=>addWater(+b.dataset.water));$('#undoWater').onclick=undoWater;
 function mealDraftHasContent(){
   if(editingMealId) return true;
@@ -511,60 +668,72 @@ function closeMealEditor(){
 const cancelBtn=$('#cancelBtn');
 const cancelMeal=e=>{e.preventDefault();e.stopPropagation();closeMealEditor();};
 cancelBtn.addEventListener('click',cancelMeal,{capture:true});
-$('#addFood').onclick=()=>{addFood();updateMealSearchPlaceholder()};$('#removePhoto').onclick=()=>{photoData='';clearPreviewUrl();$('#photo').value='';setPhotoUI();$('#status').textContent='사진을 삭제했어요. 저장하면 기록에서 제거돼요.'};
+$('#addFood').onclick=()=>{addFood();updateMealSearchPlaceholder()};$('#removePhoto').onclick=()=>{cancelPhotoLoad();photoData='';clearPreviewUrl();$('#photo').value='';setPhotoUI();$('#status').textContent='사진을 삭제했어요. 저장하면 기록에서 제거돼요.'};
+$('#rotatePhotoLeft').onclick=()=>rotateMealPhoto(-1);$('#rotatePhotoRight').onclick=()=>rotateMealPhoto(1);
 $('#photo').onchange=async e=>{
-  const f=e.target.files&&e.target.files[0]; if(!f)return;
-  $('#status').textContent='사진을 불러오는 중이에요…';
-  clearPreviewUrl();
+  const f=e.target.files&&e.target.files[0];if(!f)return;
+  const version=++photoLoadVersion;photoRotationBase='';photoRotationTurns=0;
+  photoLoading=true;photoRotationControls();$('#saveTop').disabled=true;$('#analyzeBtn').disabled=true;
+  $('#status').textContent='사진을 준비하고 있어요…';
   try{
-    // FileReader works more reliably than blob URLs in the iPhone in-app browser.
+    if(f.size>25*1024*1024)throw Error('TOO_LARGE');
     const original=await fileToDataURL(f);
-    photoData=original;
-    setPhotoUI(original);
-    $('#status').textContent='사진이 추가됐어요.';
-    // Compress when Safari can decode the image. If not, keep the original data URL.
-    try{ const compressed=await resizeDataURL(original,1200,.78); if(compressed){photoData=compressed;setPhotoUI(compressed);} }catch(_){ }
-    const body=document.querySelector('#mealDialog .mealDialogBody'); if(body) body.scrollTop=0;
+    if(version!==photoLoadVersion)return;
+    const compressed=await resizeDataURL(original,960,.68);
+    if(version!==photoLoadVersion)return;
+    photoData=compressed;photoRotationBase=compressed;photoRotationTurns=0;clearPreviewUrl();setPhotoUI();
+    $('#status').textContent='사진이 준비됐어요. 음식과 양을 입력해 저장하세요.';
   }catch(err){
-    photoData=''; setPhotoUI();
-    $('#status').textContent='사진을 불러오지 못했어요. 사진 앱에서 JPG/PNG 사진을 선택해 다시 시도해주세요.';
+    if(version!==photoLoadVersion)return;
+    setPhotoUI();
+    $('#status').textContent=err.message==='TOO_LARGE'?'사진은 25MB 이하로 선택해 주세요.':'사진을 열지 못했어요. JPG 또는 PNG 사진으로 다시 선택해 주세요.';
+  }finally{
+    if(version===photoLoadVersion){photoLoading=false;$('#saveTop').disabled=false;$('#analyzeBtn').disabled=!photoData;photoRotationControls();e.target.value='';}
   }
 };
+
 function fileToDataURL(file){return new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>resolve(fr.result);fr.onerror=()=>reject(fr.error||new Error('파일 읽기 실패'));fr.readAsDataURL(file)})}
 async function resizeDataURL(original,max,q){
-  return await new Promise(resolve=>{
+  return await new Promise((resolve,reject)=>{
     const im=new Image();
     im.onload=()=>{
       try{
         const w=im.naturalWidth||im.width,h=im.naturalHeight||im.height;
         const scale=Math.min(1,max/Math.max(w,h));
         const c=document.createElement('canvas');c.width=Math.max(1,Math.round(w*scale));c.height=Math.max(1,Math.round(h*scale));
-        c.getContext('2d').drawImage(im,0,0,c.width,c.height);resolve(c.toDataURL('image/jpeg',q));
-      }catch(_){resolve(original)}
+        const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(im,0,0,c.width,c.height);resolve(c.toDataURL('image/jpeg',q));
+      }catch(err){reject(err)}
     };
-    im.onerror=()=>resolve(original);im.src=original;
+    im.onerror=()=>reject(new Error('IMAGE_DECODE'));im.src=original;
   });
 }
+async function photoForAnalysis(source){if(!MealLogPhotoStorage.isRef(source))return source;const response=await fetch(await MealLogPhotoStorage.resolve(source));if(!response.ok)throw Error('사진을 불러오지 못했어요.');return fileToDataURL(await response.blob());}
 async function resize(file,max,q){return resizeDataURL(await fileToDataURL(file),max,q)}
-$('#analyzeBtn').onclick=async()=>{let b=$('#analyzeBtn');b.disabled=true;$('#status').textContent='AI가 음식을 분석하고 있어요…';try{let res=await fetch('/api/analyze',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({image:photoData})}),data=await res.json();if(!res.ok)throw Error(data.error||'분석 실패');$('#foods').innerHTML='';(data.foods||[]).forEach(addFood);if(!(data.foods||[]).length)addFood();$('#status').textContent='AI 추정 결과예요. 음식과 양을 확인한 뒤 저장하세요.'}catch(e){$('#status').textContent=`AI 분석을 사용할 수 없어요: ${e.message} · 음식 검색은 계속 사용할 수 있어요.`}finally{b.disabled=false}};
-$('#mealForm').onsubmit=e=>{e.preventDefault();let foods=[...document.querySelectorAll('.foodRow')].map(d=>({name:d.querySelector('.name').value||'음식',grams:+d.querySelector('.grams').value||0,calories:+d.querySelector('.calories').value||0,carbs:+d.querySelector('.carbs').value||0,protein:+d.querySelector('.protein').value||0,fat:+d.querySelector('.fat').value||0,barcodeProduct:(()=>{try{return JSON.parse(d.dataset.externalFood||'null')}catch(_){return null}})()})).filter(f=>f.name!=='음식'||f.calories||f.grams);foods.forEach(f=>{const bp=f.barcodeProduct;if(!bp?.code)return;const amount=Number(f.grams)||0,base=Number(bp.nutritionBase)||100;if(amount<=0)return;const scale=base/amount;storeUserBarcodeProduct({...bp,productAmount:amount,displayAmount:amount,calories:f.calories*scale,carbs:f.carbs*scale,protein:f.protein*scale,fat:f.fat*scale,nutritionBase:base,verifiedAt:new Date().toISOString()})});let time=$('#mealTime').value||defaultTimeForDate(selectedDate);let meal={id:editingMealId||crypto.randomUUID(),type:$('#mealType').value,time,photo:photoData,foods,memo:$('#memo').value};if(editingMealId){let i=state.meals.findIndex(x=>x.id===editingMealId);if(i>=0)state.meals[i]=meal;else state.meals.push(meal)}else state.meals.push(meal);editingMealId=null;selectedDate=time.slice(0,10);save();hideMealModal()};
+$('#analyzeBtn').onclick=async()=>{let b=$('#analyzeBtn');b.disabled=true;$('#status').textContent='AI가 음식을 분석하고 있어요…';try{let res=await fetch('/api/analyze',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({image:await photoForAnalysis(photoData)})}),data=await res.json();if(!res.ok)throw Error(data.error||'분석 실패');document.querySelectorAll('#foods .foodRow').forEach(row=>{if(!row.querySelector('.name').value.trim())row.remove();});(data.foods||[]).forEach(addFood);if(!document.querySelector('#foods .foodRow'))addFood();$('#status').textContent='AI 추정 결과예요. 음식과 양을 확인한 뒤 저장하세요.'}catch(e){$('#status').textContent=`AI 분석을 사용할 수 없어요: ${e.message} · 음식 검색은 계속 사용할 수 있어요.`}finally{b.disabled=false}};
+$('#mealForm').addEventListener('invalid',e=>{const field=e.target;$('#status').textContent='입력한 값과 먹은 시간을 확인해 주세요.';field.scrollIntoView({block:'center'});},true);
+$('#mealForm').onsubmit=async e=>{e.preventDefault();const previousMeals=state.meals.slice(),previousDate=selectedDate,editorVersion=photoLoadVersion;let attemptedMeal=null;try{if(photoLoading){$('#status').textContent='사진 준비가 끝나면 저장해 주세요.';return;}document.querySelectorAll('#foods .foodRow').forEach(row=>{if(row.dataset.useSavedNutrition==='true'&&!row.querySelector('.nutritionLater')?.checked)calcRecordNutrition(row);});let foods=[...document.querySelectorAll('.foodRow')].map(d=>({name:d.querySelector('.name').value||'음식',grams:+d.querySelector('.grams').value||0,unit:readFoodUnit(d),calories:+d.querySelector('.calories').value||0,carbs:+d.querySelector('.carbs').value||0,protein:+d.querySelector('.protein').value||0,fat:+d.querySelector('.fat').value||0,barcodeProduct:(()=>{try{return JSON.parse(d.dataset.externalFood||'null')}catch(_){return null}})(),...MealLogQuality.readRow(d)})).filter(f=>f.name!=='음식'||f.calories||f.grams);foods.forEach(f=>{const bp=f.barcodeProduct;if(!bp?.code||f.nutritionStatus==='unknown')return;const amount=Number(f.grams)||0,base=Number(bp.nutritionBase)||100;if(amount<=0)return;const scale=base/amount;storeUserBarcodeProduct({...bp,productAmount:bp.productAmount,displayAmount:bp.displayAmount,calories:f.calories*scale,carbs:f.carbs*scale,protein:f.protein*scale,fat:f.fat*scale,nutritionBase:base,verifiedAt:new Date().toISOString()})});$('#saveTop').disabled=true;$('#status').textContent='사진과 식사 기록을 저장하고 있어요…';const savedPhoto=await window.mealPreparePhoto(photoData);if(editorVersion!==photoLoadVersion)return;let time=$('#mealTime').value||defaultTimeForDate(selectedDate);let meal={id:editingMealId||crypto.randomUUID(),type:$('#mealType').value,time,photo:savedPhoto,foods,memo:$('#memo').value};if(editingMealId){let i=state.meals.findIndex(x=>x.id===editingMealId);if(i>=0)state.meals[i]=meal;else state.meals.push(meal)}else state.meals.push(meal);attemptedMeal=meal;editingMealId=meal.id;selectedDate=time.slice(0,10);if(window.mealCommit)await window.mealCommit();else save();editingMealId=null;hideMealModal();}catch(error){if(attemptedMeal){const previous=previousMeals.find(m=>m.id===attemptedMeal.id);state.meals=state.meals.flatMap(m=>m===attemptedMeal?(previous?[previous]:[]):[m]);}selectedDate=previousDate;$('#status').textContent=error.name==='QuotaExceededError'?'앱의 임시 저장 공간이 부족해요. 사진과 입력 내용은 유지돼요. 로그인 후 기존 사진 이전이 끝나면 다시 저장해 주세요.':(error.message||'저장하지 못했어요. 입력 내용은 그대로 있으니 다시 시도해 주세요.');$('#status').setAttribute('role','alert');$('#status').scrollIntoView({block:'center'});}finally{$('#saveTop').disabled=false;}};
 $('#settingsBtn').onclick=()=>{$('#goalInput').value=state.goal;$('#targetWeightInput').value=state.targetWeight||'';$('#stepsGoalInput').value=state.stepsGoal||8000;$('#waterGoalInput').value=state.waterGoal||2000;$('#settingsDialog').showModal()};$('#settingsClose').onclick=()=>$('#settingsDialog').close();$('#saveSettings').onclick=()=>{state.goal=+$('#goalInput').value||1200;let tw=+$('#targetWeightInput').value;state.targetWeight=tw>0?tw:null;state.stepsGoal=+$('#stepsGoalInput').value||8000;state.waterGoal=+$('#waterGoalInput').value||2000;save();$('#settingsDialog').close()};
 let statsDays=7;
 function dayKeyOffset(n){let d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+n);return localDateKey(d)}
 function renderStats(){
- let keys=Array.from({length:statsDays},(_,i)=>dayKeyOffset(i-(statsDays-1)));
- let totals=keys.map(k=>{let fs=state.meals.filter(m=>m.time?.slice(0,10)===k).flatMap(m=>m.foods||[]);let sum=n=>fs.reduce((a,f)=>a+(+f[n]||0),0);return {k,cal:sum('calories'),carbs:sum('carbs'),protein:sum('protein'),fat:sum('fat')}});
- let logged=totals.filter(x=>x.cal>0), average=n=>logged.length?logged.reduce((a,x)=>a+x[n],0)/logged.length:0;
- $('#avgCalories').textContent=`${Math.round(average('cal'))} kcal`;$('#loggedDays').textContent=`${logged.length}일`;$('#avgCarbs').textContent=`${Math.round(average('carbs'))}g`;$('#avgProtein').textContent=`${Math.round(average('protein'))}g`;$('#avgFat').textContent=`${Math.round(average('fat'))}g`;
- $('#statsPeriodLabel').textContent=`최근 ${statsDays}일`;
- let max=Math.max(state.goal,...totals.map(x=>x.cal),1),chart=$('#calorieChart');chart.innerHTML='';
- totals.forEach((x,i)=>{let col=document.createElement('div');col.className='barCol';let h=x.cal?Math.max(3,Math.round(x.cal/max*100)):0;let label=statsDays===7?new Date(x.k+'T12:00').toLocaleDateString('ko-KR',{weekday:'short'}):((i%5===0||i===totals.length-1)?new Date(x.k+'T12:00').getDate():'');col.innerHTML=`<div class="barValue">${x.cal?Math.round(x.cal):''}</div><div class="barTrack">${x.cal?`<i style="height:${h}%"></i>`:'<span class="zeroMark"></span>'}</div><small>${label}</small>`;chart.appendChild(col)});
- let goal=document.createElement('div');goal.className='calorieGoalLine';goal.style.bottom=`calc(20px + ${(state.goal/max)*148}px)`;goal.innerHTML=`<span>목표 ${state.goal.toLocaleString()} kcal</span>`;chart.appendChild(goal);
- let counts={};state.meals.filter(m=>keys.includes(m.time?.slice(0,10))).flatMap(m=>m.foods||[]).forEach(f=>{let n=f.name||'음식';counts[n]=(counts[n]||0)+1});
- let top=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5);$('#topFoods').innerHTML=top.length?top.map(([n,c],i)=>`<div><span><b>${i+1}</b>${n}</span><em>${c}회</em></div>`).join(''):'<p class="muted">아직 충분한 식사 기록이 없어요.</p>';
+ const report=MealLogStats.calculate(state.meals,statsDays,localDateKey(new Date())),totals=report.daily;
+ const average=report.average,goalValue=Math.max(0,Number(state.goal)||1200);
+ $('#avgCalories').textContent=Math.round(average.calories).toLocaleString()+' kcal';$('#loggedDays').textContent=report.loggedDays+'일';
+ for(const key of ['carbs','protein','fat'])$('#avg'+key[0].toUpperCase()+key.slice(1)).textContent=Math.round(average[key])+'g';
+ $('#totalCalories').textContent=Math.round(report.total.calories).toLocaleString()+' kcal';$('#totalMeals').textContent=report.total.meals+'회';
+ $('#statsPeriodLabel').textContent=report.startDate.slice(5).replace('-','/')+' ~ '+report.endDate.slice(5).replace('-','/');
+ $('#statsSummaryNote').textContent=report.unknownFoods?'영양 미입력 '+report.unknownFoods+'개가 있어요. 합계는 확인된 값만, 평균은 영양정보가 완전한 '+report.completeDays+'일만 반영해요.':report.loggedDays?'평균은 기록한 '+report.loggedDays+'일 기준이에요. 기록이 없는 날은 제외해요.':'아직 이 기간에 식사 기록이 없어요.';$('#statsSummaryNote').textContent+=' 같은 날짜의 아침·점심·저녁·간식은 각각 1회로 계산해요.';
+ MealLogCalorieTrend.render({container:$('#calorieChart'),details:$('#calorieDayDetail'),days:totals,goal:goalValue,onOpen:date=>{selectedDate=date;document.querySelector('.tab[data-view="diary"]').click();render();}});
+ const foods=$('#topFoods');foods.replaceChildren();
+ report.topFoods.forEach(([name,count],i)=>{const row=document.createElement('div'),span=document.createElement('span'),rank=document.createElement('b'),label=document.createElement('em');rank.textContent=i+1;span.append(rank,document.createTextNode(name));label.textContent=count+'회';row.append(span,label);foods.append(row);});
+ if(!report.topFoods.length){const empty=document.createElement('p');empty.className='muted';empty.textContent='아직 음식 기록이 없어요.';foods.append(empty);}
+ const body=$('#statsDailyBody');body.replaceChildren();
+ [...totals].reverse().forEach(day=>{const row=document.createElement('tr');for(const value of [day.date.slice(5).replace('-','/'),day.meals?day.meals+'회':'기록 없음',day.unknownFoods?(day.knownFoods?'확인된 '+Math.round(day.calories)+' kcal · 미입력 '+day.unknownFoods+'개':'영양정보 미입력'):day.meals?Math.round(day.calories).toLocaleString()+' kcal':'—']){const cell=document.createElement('td');cell.textContent=value;row.append(cell);}body.append(row);});
 }
+
 function signedKg(v){return `${v>0?'+':''}${v.toFixed(1)} kg`}
 function renderWeights(){
+ window.MealLogHome?.render();
  let arr=[...(state.weights||[])].sort((a,b)=>a.date.localeCompare(b.date)),recent=arr.slice(-12),box=$('#weightChart');box.innerHTML='';
  let cur=arr.at(-1),first=arr[0],prev=arr.length>1?arr.at(-2):null;
  $('#currentWeight').textContent=cur?`${(+cur.value).toFixed(1)} kg`:'-';
@@ -597,3 +766,4 @@ $('#exportData').onclick=()=>{let blob=new Blob([JSON.stringify({...state,export
 $('#importData').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let data=JSON.parse(await f.text());if(!Array.isArray(data.meals))throw Error();if(confirm('현재 기록을 백업 파일의 내용으로 바꿀까요?')){state={goal:data.goal||1200,targetWeight:data.targetWeight||null,meals:data.meals||[],weights:data.weights||[],activity:data.activity||{},stepsGoal:data.stepsGoal||8000,waterGoal:data.waterGoal||2000};save();alert('백업을 불러왔어요.')}}catch{alert('올바른 MealLogAI 백업 파일이 아니에요.')}e.target.value=''};
 
 if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js');render();
+

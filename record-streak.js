@@ -1,0 +1,20 @@
+(function(root){
+ 'use strict';
+ function validDate(value){if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;const time=Date.parse(value+'T12:00:00Z');return Number.isFinite(time)&&new Date(time).toISOString().slice(0,10)===value;}
+ function previous(date,n=1){const value=new Date(date+'T12:00:00Z');value.setUTCDate(value.getUTCDate()-n);return value.toISOString().slice(0,10);}
+ function calculate(records,today){if(!validDate(today))throw Error('invalid_today');const days=new Set(),add=date=>{if(validDate(date)&&date<=today)days.add(date);};
+  for(const meal of records.meals||[]){if(meal.deleted||meal.name==='__MEALLOG_DELETED__')continue;const foods=meal.foods||[];if(foods.some(f=>typeof f.name==='string'&&f.name.trim()||Number(f.calories)>0||Number(f.grams)>0))add(meal.time?.slice(0,10));}
+  for(const [date,activity] of Object.entries(records.activity||{}))if(Number(activity?.water)>0)add(date);
+  for(const weight of records.weights||[])if(Number(weight.value)>0)add(weight.date);
+  const recordedToday=days.has(today);let cursor=recordedToday?today:previous(today),count=0;while(days.has(cursor)){count++;cursor=previous(cursor);}
+  let longest=0,run=0,last=null;for(const date of [...days].sort()){run=last&&previous(date)===last?run+1:1;longest=Math.max(longest,run);last=date;}
+  return {count,longest,recordedToday,week:Array.from({length:7},(_,i)=>{const date=previous(today,6-i);return {date,recorded:days.has(date)};})};
+ }
+ const todayKey=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(new Date());
+ function render(records){const button=document.getElementById('recordStreakBtn');if(!button)return;const result=calculate(records,todayKey());document.getElementById('recordStreakCount').textContent=result.count+'일'+(result.count?'째':'');button.classList.toggle('hasStreak',result.count>0);button.setAttribute('aria-label','연속 기록 '+result.count+'일, 최근 7일 보기');document.getElementById('streakCurrent').textContent=result.count+'일';document.getElementById('streakLongest').textContent=result.longest+'일';document.getElementById('streakHeading').textContent=result.recordedToday?(result.count===1?'첫걸음을 축하해요! 🎉':result.count+'일 연속 기록을 축하해요! 🎉'):result.count?result.count+'일의 꾸준함, 멋져요!':result.longest?'다시 시작해도 괜찮아요 🌱':'작은 시작을 응원해요 🌱';document.getElementById('streakMessage').textContent=result.recordedToday?(result.count===result.longest&&result.count>1?'지금 최장 기록을 이어가고 있어요! 오늘도 나를 챙긴 당신, 잘하고 있어요.':'오늘도 나를 위한 기록을 남겼네요. 작은 습관이 쌓이고 있어요. 내일도 함께해요!'):result.count?'오늘도 이어가 볼까요? 식사·물·체중 중 하나만 기록해도 좋아요. 당신의 꾸준함을 응원해요!':result.longest?'지금까지 쌓아 온 노력은 그대로예요. 오늘 한 번의 기록부터, 우리 다시 차근차근 함께해요.':'식사·물·체중 중 하나만 기록해도 시작이에요. 서두르지 말고 나의 속도로 함께해요!';
+  const list=document.getElementById('streakWeek');list.replaceChildren();for(const day of result.week){const item=document.createElement('li');item.className='streakDay'+(day.recorded?' recorded':'')+(day.date===todayKey()?' today':'');const date=document.createElement('span'),mark=document.createElement('strong'),status=document.createElement('small');date.textContent=Number(day.date.slice(5,7))+'/'+Number(day.date.slice(8));mark.textContent=day.recorded?'✓':'·';mark.setAttribute('aria-hidden','true');status.textContent=day.recorded?'기록':'미기록';item.append(date,mark,status);item.setAttribute('aria-label',day.date+' '+status.textContent);list.append(item);}
+ }
+ root.MealLogStreak={calculate,render};
+ if(typeof document!=='undefined'){document.getElementById('recordStreakBtn').onclick=()=>{render(state);document.getElementById('recordStreakDialog').showModal();};document.getElementById('closeRecordStreak').onclick=()=>document.getElementById('recordStreakDialog').close();document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')render(state);});root.setInterval?.(()=>{if(document.visibilityState==='visible')render(state);},60000);}
+ if(typeof module==='object'&&module.exports)module.exports={calculate};
+})(typeof globalThis!=='undefined'?globalThis:this);

@@ -1,1 +1,1 @@
-{"functions":{"api/analyze.js":{"maxDuration":30}},"headers":[{"source":"/(.*)","headers":[{"key":"X-Content-Type-Options","value":"nosniff"}]}]}
+{"functions":{"api/analyze.js":{"maxDuration":30},"api/meal-assistant.js":{"maxDuration":45},"api/ai-coach.js":{"maxDuration":60}},"headers":[{"source":"/(.*)","headers":[{"key":"X-Content-Type-Options","value":"nosniff"}]}]}

@@ -1,0 +1,12 @@
+/* Photos are private. Persist stable references, never expiring signed URLs. */
+(()=>{'use strict';
+const prefix='meal-photo:',bucket='meal-photos',cache=new Map();let client,getUser;
+function configure(sb,user){client=sb;getUser=user;}
+function isRef(value){return typeof value==='string'&&value.startsWith(prefix);}
+async function resolve(value){if(!isRef(value))return value;const owner=getUser?.()?.id,path=value.slice(prefix.length);if(!owner||!path.startsWith(owner+'/'))throw Error('사진을 보려면 해당 계정으로 로그인해 주세요.');const found=cache.get(value);if(found&&found.until>Date.now())return found.url;const {data,error}=await client.storage.from(bucket).createSignedUrl(path,3600);if(error)throw error;cache.set(value,{url:data.signedUrl,until:Date.now()+3000000});return data.signedUrl;}
+async function upload(value){if(!value||isRef(value)||!value.startsWith('data:image/'))return value;const owner=getUser?.()?.id;if(!owner)throw Error('사진을 무료 클라우드에 저장하려면 먼저 로그인해 주세요.');const blob=await (await fetch(value)).blob();if(blob.size>1048576)throw Error('사진 용량이 커요. 더 작은 사진으로 다시 선택해 주세요.');const hash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',await blob.arrayBuffer()))].map(b=>b.toString(16).padStart(2,'0')).join('');const ext=blob.type==='image/png'?'png':blob.type==='image/webp'?'webp':'jpg',path=owner+'/'+hash+'.'+ext;const result=await client.storage.from(bucket).upload(path,blob,{contentType:blob.type,upsert:false,cacheControl:'3600'});if(result.error&&String(result.error.statusCode)!=='409'&&!/already exists|duplicate/i.test(result.error.message))throw Error('사진을 클라우드에 저장하지 못했어요. 무료 저장 한도와 연결을 확인해 주세요.');if(getUser?.()?.id!==owner)throw Error('계정이 변경되어 저장을 중단했어요.');return prefix+path;}
+async function hydrate(img){const ref=img.getAttribute('src');if(!isRef(ref)||img.dataset.photoLoading===ref)return;img.dataset.photoLoading=ref;try{const url=await resolve(ref);if(img.getAttribute('src')===ref){img.dataset.photoRef=ref;img.src=url;img.alt=img.alt||'식사 사진';}}catch(error){img.alt='사진을 불러오지 못했어요';}finally{delete img.dataset.photoLoading;}}
+const observer=new MutationObserver(records=>{for(const rec of records){if(rec.type==='attributes')hydrate(rec.target);else for(const node of rec.addedNodes){if(node.nodeType!==1)continue;if(node.matches('img'))hydrate(node);node.querySelectorAll('img').forEach(hydrate);}}});
+observer.observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['src']});
+window.MealLogPhotoStorage={configure,isRef,resolve,upload};
+})();

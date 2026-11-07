@@ -1,0 +1,102 @@
+.foodMemoryLaunch{background:linear-gradient(135deg,#fff2f6,#fff0e6);border:1px solid #f6d4de}.foodMemoryLaunch p{font-size:14px}.foodMemoryLaunch button{margin:4px}.foodMemoryDialog{width:min(560px,calc(100vw - 24px));max-height:88dvh;border:1px solid #f3cfda;border-radius:24px;padding:20px;color:#674953;background:#fffafb;box-sizing:border-box}.foodMemoryDialog::backdrop{background:#52333b66}.foodMemoryDialog input:not([type=checkbox]),.foodMemoryDialog textarea,.foodMemoryDialog select{display:block;width:100%;box-sizing:border-box;font:inherit;font-size:16px;margin:8px 0 14px;padding:12px;border:1px solid #e9c8d1;border-radius:12px;background:#fff}.foodMemoryDialog button{font:inherit;margin:4px 4px 8px 0;min-height:44px;white-space:normal}.foodMemoryDialog form>button[type=submit]{background:#e99bb2;color:#fff;border:0;border-radius:14px;padding:12px 18px}.foodMemoryTabs{display:flex;gap:8px;margin:12px 0}.foodMemoryCard{border:1px solid #f2dce2;background:#fff;padding:14px;border-radius:16px;margin:10px 0}.foodMemoryConsent{display:flex;gap:10px;align-items:flex-start;margin:16px 0;line-height:1.6}.foodMemoryConsent input{width:22px;height:22px;flex:none}.foodMemoryId{font-size:11px;overflow-wrap:anywhere;color:#977784}.foodMemoryDialog .status{overflow-wrap:anywhere}.foodMemoryDialog label{display:block}.foodMemoryDialog label.foodMemoryConsent{display:flex}
+.foodMemoryDialog .dialogHead{display:flex;align-items:center;justify-content:space-between;gap:12px}.foodMemoryDialog .dialogHead strong{flex:1;width:auto}.foodMemoryDialog .dialogHead button{width:auto;flex:none;padding:8px 12px}.foodMemoryDialog button:disabled{opacity:.5;cursor:default}.approvedMemorySuggestions button{font-size:13px;line-height:1.5;white-space:normal;background:#fff0f5;border:1px solid #f1ccd8}
+
+/* Bright peach / milk cream theme, preserving the original peach character. */
+:root{--meallog-button-bg:#fffefb;--meallog-button-text:#855d48;--meallog-button-border:#f6ddca;--bg:#fffaf6}
+body{background:linear-gradient(155deg,#fffdfb 0%,#fff5ee 45%,#fff8fa 80%,#fbfff8 100%)!important;background-attachment:fixed}
+.summary,.panel,.chartCard,.meal{box-shadow:0 7px 22px #edc5b312;border-color:#f7e4d9}
+.summary{background:linear-gradient(120deg,#ffffff,#fff8ee)!important}
+.homeGoals.panel{background:linear-gradient(140deg,#fffaf3,#fff2e9);border-color:#f6dfd0}
+.homeGoalRow,.homeMealType,.homeRecordTile,.meal,.empty{background:#fffefc;border-color:#f6e4d9}
+.foodMemoryLaunch{background:linear-gradient(125deg,#fff2f6,#fff7e9);border-color:#ffdce4;box-shadow:0 8px 24px #f8d4d51c}
+.foodMemoryLaunch>b{color:#805846}.foodMemoryLaunch p{color:#92705e}
+body button,body input[type=submit],body .secondary,body .importBtn{background:var(--meallog-button-bg)!important;color:var(--meallog-button-text)!important;border-color:var(--meallog-button-border)!important;box-shadow:none}
+body button small,body button b,body button strong,body button .tabLabel{color:inherit!important}
+body button:focus-visible{outline:3px solid #f2bba3;outline-offset:3px}
+body button.active,body button[aria-pressed=true],body .day.selected{background:#ffe9dc!important;box-shadow:inset 0 0 0 1.5px #f1c5af!important;font-weight:700}
+body button:disabled{opacity:.6}
+body button.trendColumn{background:transparent!important}
+.foodMemoryDialog{background:#fffdfb;color:#785442;border-color:#ffe0d8;box-shadow:0 16px 48px #dab5a52b}
+.foodMemoryDialog::backdrop,dialog::backdrop{background:rgba(222,187,174,.2)!important;backdrop-filter:blur(2px)}
+.foodMemoryCard{border-color:#ffe2d9;background:#fffefc}.foodMemoryId{color:#9a7a68}
+.foodMemoryDialog input:not([type=checkbox]),.foodMemoryDialog textarea,.foodMemoryDialog select{border-color:#f5ddd0;background:#ffffff}
+.foodMemoryConsent input{accent-color:#db9d82}
+#mealRecords{margin:20px 0 24px}#mealRecords>.sectionTitle{margin-top:0}.foodMemoryLaunch button{width:100%;margin:4px 0}
+
+
+/* Peach marks a selected item; other controls remain light and neutral. */
+body button,body .secondary,body .importBtn{background:#fffefb!important}
+body button.active,body button[aria-pressed=true],body button[aria-selected=true],body .day.selected{background:#ffe4d5!important;border-color:#f3cbb7!important;box-shadow:none!important}
+body button:active:not(:disabled){background:#ffe4d5!important}
+body .appTabs .tab:not(.active){background:transparent!important;border-color:transparent!important}
+body .appTabs .tab.active{background:#ffe4d5!important;border-color:transparent!important;box-shadow:none!important}
+.homeMealIcon{background:transparent!important;border:0!important;border-radius:0!important;display:flex;align-items:center;justify-content:center;width:36px;min-width:36px;height:36px}
+.mealDrawing{display:inline-block;flex:none;width:32px;height:32px;vertical-align:middle}
+.foodMemoryTitle{display:flex;align-items:center;gap:9px}.foodMemoryTitle .peachDrawing{width:27px;height:27px}
+.empty:before{content:none!important}#meals .empty>.peachDrawing{display:block;width:48px;height:48px;margin:0 auto 12px}
+@media(hover:hover){body button:not(:disabled):not(.active):not(.selected):not([aria-selected=true]):not([aria-pressed=true]):hover{background:#fffaf4!important}body .appTabs .tab:not(.active):hover{background:#fffaf4!important}}
+
+.homeMealType{position:relative;padding:0!important;overflow:hidden}.homeMealView{display:flex;align-items:center;gap:12px;width:100%;min-height:108px;padding:18px 40px 18px 14px!important;border:0!important;border-radius:20px!important;text-align:left;cursor:pointer}.homeMealView .homeMealInfo{padding-right:0;min-width:0}.homeMealView .homeMealInfo strong,.homeMealView .homeMealInfo span{display:block}.homeMealType .homeMealAdd{position:absolute;top:10px;right:10px;z-index:1}.mealDetailsHeading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:18px 0 8px}.mealDetailsHeading h3{font-size:14px;color:#805b48;margin:0;line-height:1.6}.mealDetailsHeading button{width:auto;min-width:74px;font-size:12px;padding:8px}.mealFoodList{list-style:none;padding:0;margin:8px 0}.mealFoodList li{margin:7px 0;overflow-wrap:anywhere}.mealFoodList small{display:block;font-size:11px;color:#987a65;margin-top:3px}.mealActions{display:flex;flex-direction:column;align-items:center;gap:9px}.mealActions .secondary{font-size:11px;padding:7px 10px;min-height:34px;width:auto}.mealActions .delete{position:static;flex:none;min-height:28px;width:28px;height:28px;padding:0}#meals .meal{grid-template-columns:64px minmax(0,1fr) auto;gap:12px}#meals .mealPhoto,#meals .mealNoPhoto{width:64px;height:70px}#mealDetails[hidden]{display:none!important}
+
+/* The meal grid shares its parent panel surface; only the individual cards are white. */
+.homeGoals #homeGoalContent,.homeGoals .homeMealSummary,.homeGoals .homeMealTypes{min-width:0;max-width:100%;background:transparent!important}
+.homeGoals .homeMealSummary{padding:0!important;border:0!important}
+.homeGoals .homeMealTypes{margin:12px 0 0;padding:0;border:0;overflow:visible;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.homeGoals .homeMealType{display:block;min-width:0;max-width:100%;border-radius:20px;overflow:hidden;background:#fffefb;isolation:isolate}
+.homeGoals .homeMealView{display:flex;width:100%;min-width:0;max-width:100%;height:100%;margin:0!important;border-radius:inherit!important;box-sizing:border-box}
+.homeGoals .homeMealInfo{min-width:0;max-width:100%;overflow-wrap:anywhere}
+.homeGoals .water,.homeGoals .homeWeight{min-width:0;max-width:100%;box-sizing:border-box}
+.homeGoals .homeMealView{padding:20px 12px 16px!important;gap:10px}
+.homeGoals .homeMealView .homeMealIcon{width:32px;min-width:32px}
+.homeGoals .homeMealInfo strong{padding-right:24px}
+.homeGoals .homeMealInfo span{font-size:11px;font-weight:400;word-break:keep-all;overflow-wrap:normal;line-height:1.6}
+
+/* Both home panels share the same warm cream/peach surface. */
+.foodMemoryLaunch{background:linear-gradient(140deg,#fffaf3,#fff2e9);border-color:#f6dfd0;box-shadow:0 7px 22px #edc5b312}
+
+.homeMetricTitle{display:inline-flex;align-items:center;gap:5px;line-height:1.4}.homeMetricTitle .mealDrawing{width:22px;height:22px;flex:none}
+
+.assistantMessages{display:grid;gap:8px;margin:12px 0;max-height:250px;overflow:auto;overscroll-behavior:contain}.assistantMessages:empty{display:none}.assistantBubble{font-size:14px;line-height:1.7;padding:12px 14px;border-radius:18px;background:#fff2e8;margin:0;white-space:pre-wrap;overflow-wrap:anywhere;max-width:95%}.assistantBubble.user{background:#f5f2ec;justify-self:end}.assistantBubble small{display:block;font-size:11px;color:#977764;margin-bottom:3px}.foodMemoryDialog .muted{font-size:12px;line-height:1.7}
+
+.batchFoodRow{margin:12px 0;padding:14px;border:1px solid #f6dfd0;border-radius:18px;background:#fffefb}.batchFoodRow p{font-size:13px;line-height:1.6}.batchFoodRow small{display:block;overflow-wrap:anywhere;margin-bottom:8px}.batchFoodRow button{font-size:12px}.batchProgress{font-size:14px;font-weight:700;color:#876750}.foodMemoryDialog .batchCandidate{display:block;width:100%;text-align:left;padding:12px;font-size:13px;line-height:1.6}
+.foodMemoryDialog .batchFoodRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;padding:12px;margin:8px 0}
+.batchFoodRow>b,.batchFoodRow>p,.batchFoodRow>small{grid-column:1/-1;margin:0!important;line-height:1.5}
+.foodMemoryDialog .batchFoodRow>button{width:auto;min-height:36px;padding:6px 10px;margin:0;font-size:12px;line-height:1.4}
+
+.batchNotice{padding:12px;border:1px solid #efd5b5;border-radius:14px;background:#fff8e8;font-size:12px;line-height:1.6;color:#8b6546}
+
+.customFoodForm label{display:flex;flex-direction:column;gap:6px;margin:12px 0}.customFoodForm input,.customFoodForm select{width:100%;box-sizing:border-box}
+
+.batchEntryEditor,.batchInlineAmount{grid-column:1/-1;min-width:0}.batchEntryEditor:empty{display:none}.batchEntryEditor{border-top:1px solid #f6dfd0;padding-top:12px}.batchEntryEditor section{min-width:0}.batchEntryEditor input{box-sizing:border-box;max-width:100%}.batchInlineAmount{display:grid;gap:5px;font-size:12px}.batchInlineAmount input{width:100%;box-sizing:border-box}.batchInlineAmount span{color:#a54b3b;font-size:12px}.batchTotal{padding:10px;background:#fff4ea;border-radius:12px;font-size:12px;line-height:1.6}
+
+.foodMemoryTabs{flex-wrap:wrap}.foodMemoryTabs button{flex:1;min-width:70px}.approvedStart{background:#fff8f0;border:1px solid #f6ddca;border-radius:18px;padding:12px;margin:12px 0}.approvedStart h3{font-size:14px;margin:8px 0}.approvedStart button{width:100%;text-align:left;overflow-wrap:anywhere}.combinationCard{overflow-wrap:anywhere}
+
+/* Keep the four assistant tabs on one row on narrow phones. */
+.foodMemoryDialog>.foodMemoryTabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.foodMemoryDialog>.foodMemoryTabs>button{min-width:0;width:100%;margin:0;padding:10px 4px;font-size:14px;line-height:1.3;white-space:nowrap;word-break:keep-all;box-sizing:border-box}
+
+.aiUsageCard{padding:12px;margin:12px 0;border:1px solid #f5ddca;border-radius:16px;background:#fff8ef;overflow-wrap:anywhere}.aiUsageCard p{margin:0 0 8px;font-size:14px;font-weight:600}.aiUsageCard small{display:block;font-size:12px;line-height:1.6;color:#967661}.aiUsageCard button{padding:8px 10px;font-size:13px;margin:8px 4px 0 0}.aiUsageSettings{margin-top:18px;padding-top:14px;border-top:1px solid #f5ddca}.aiUsageDialog>.dialogHead{display:flex;justify-content:space-between}.aiUsageDialog>.dialogHead button{width:auto}.aiUsageDialog section>p{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid #f5e8dd}.aiUsageDialog section>small{font-size:12px;line-height:1.6;color:#967661}.aiUsageDialog strong{color:#855d48}
+
+.aiUsageDialog{width:min(560px,calc(100vw - 24px));max-height:88dvh;box-sizing:border-box;overflow:auto;padding:20px;border:1px solid #ffe0d8;border-radius:24px;background:#fffdfb;color:#785442;box-shadow:0 16px 48px #dab5a52b}.aiUsageDialog button{min-height:44px}
+
+.foodMemoryDialog .foodCandidate{display:flex;flex-direction:column;align-items:flex-start;gap:5px;text-align:left;white-space:normal;min-width:0;max-width:100%;overflow-wrap:anywhere;padding:14px 16px}.foodCandidate strong{font-size:1em;line-height:1.4}.foodCandidate .foodCandidateContext,.foodCandidate small{font-size:.82em;font-weight:400;line-height:1.6}.foodCandidate small{color:#8a6955}
+
+.portionPresets{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.foodMemoryDialog .portionPresets button{width:auto;flex:0 1 auto;max-width:100%;margin:0;padding:9px 12px;border:1px solid #f4d9c9;border-radius:14px;background:#fffaf5;color:#875e45;font-size:13px;white-space:normal}.portionPreview{padding:12px 14px;border-radius:14px;background:#fff3e9;color:#77553f;line-height:1.6;overflow-wrap:anywhere}.portionPreview[data-valid=false]{color:#a64d36}
+
+.foodMemoryDialog .portionPresets button[aria-pressed=true]{background:#ffe4d5;border-color:#f5c7ac;color:#875e45}
+
+.approvedPortionHint{font-size:13px;line-height:1.6;color:#875e45;margin:14px 0 6px}.approvedPortions{padding:10px;border:1px solid #f5d8c6;border-radius:16px;background:#fffaf5}
+
+.memoryUpdateChoices button{display:block;width:100%;text-align:left}.memoryUpdateChoices p{line-height:1.6}
+
+.foodMemoryDialog .assistantModes{margin:8px 0;gap:8px}.foodMemoryDialog .assistantModes button{min-height:40px;margin:0;padding:8px 12px}.foodMemoryDialog .assistantComposer{padding:0;margin:12px 0;display:block}.assistantComposer>label{font-size:13px;font-weight:600}.foodMemoryDialog .assistantComposer textarea{min-height:80px;margin:6px 0 10px;resize:vertical}.assistantActions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.foodMemoryDialog .assistantActions>button{width:auto;flex:0 0 auto;min-height:44px;margin:0;padding:10px 16px;border:1px solid #f4d8c7;border-radius:14px;color:#875e45}.foodMemoryDialog .aiUsageCompact{flex:1 1 150px;min-width:0;padding:0;margin:0;border:0;background:transparent;display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px}.aiUsageCompact p{font-size:12px;font-weight:400;margin:0}.aiUsageCompact summary{font-size:12px;cursor:pointer;padding:6px 0;color:#967661}.aiUsageCompact details[open]{flex-basis:100%;padding:8px;border:1px solid #f5ddca;border-radius:12px;background:#fffaf5;box-sizing:border-box}.foodMemoryDialog .aiUsageCompact button{width:auto;min-height:36px;margin:4px 0;padding:6px 8px}.assistantChoices:empty{display:none}.assistantComposer+.assistantChoices{margin:10px 0}.foodMemoryDialog .approvedStart{margin-top:16px}
+
+#mealRecords{margin:0}#mealRecords>.sectionTitle{display:none!important}#mealRecords>.chartCard:not([hidden]){margin:16px 0}.foodMemorySettings{margin:18px 0;padding:14px;border:1px solid #f1ddce;border-radius:16px;background:#fffaf5}.foodMemorySettings .foodMemoryTitle{font-size:15px}.foodMemorySettings p{font-size:12px;line-height:1.6}
+
+/* Keep native modal hit-testing on a fixed, non-scrolling surface in Safari.
+   Only the content pane scrolls; forms must not create another scroll layer. */
+.foodMemoryDialog[open]{display:flex;flex-direction:column;position:fixed;inset:16px 0 auto;margin:0 auto;height:calc(var(--meal-viewport-height,100dvh) - 32px);max-height:780px;overflow:hidden;overscroll-behavior:none;-webkit-overflow-scrolling:auto;scroll-behavior:auto}
+.foodMemoryDialog>.dialogHead,.foodMemoryDialog>.foodMemoryTabs{flex:0 0 auto}
+.foodMemoryDialog>.foodMemoryScroll{flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:auto;scroll-behavior:auto;padding:3px 3px max(12px,env(safe-area-inset-bottom))}
+.foodMemoryDialog form{max-height:none;overflow:visible}
+.foodMemoryDialog::backdrop{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.foodMemoryDialog textarea{touch-action:auto;-webkit-user-select:text;user-select:text}
