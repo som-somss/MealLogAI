@@ -127,7 +127,7 @@
   const aiUsage=MealLogAIUsage.create({client:sb,getUser:()=>user});aiUsage.mountSettings();
   const foodMemoryPanel=MealLogFoodMemory.mount({usage:aiUsage,client:sb,requestFetch:recordReset.fetch,getUser:()=>user,getDay:()=>selectedDate,getDatabase:()=>FOOD_DB,prepare:async()=>{
     if(!user)throw Error("로그인이 필요해요.");
-    if(loadingMeals||syncing||resetting||savingSteps||!getMealSync().ready||getMealSync().pendingCount)throw Error("먼저 기존 기록 동기화를 마친 뒤 다시 열어 주세요.");
+    if(loadingMeals||syncing||resetting||savingSteps||!getMealSync().ready||getMealSync().pendingCount)throw Object.assign(Error("먼저 기존 기록 동기화를 마친 뒤 다시 열어 주세요."),{code:'MEALLOG_SYNC_PENDING'});
     const owner=user.id,epoch=recordEpoch;const [changed,access]=await Promise.all([recordReset.prepare(user),sb.rpc('meal_food_capabilities')]);
     if(changed||user?.id!==owner||recordEpoch!==epoch)throw Error("계정 또는 기록이 바뀌었어요. 다시 열어 주세요.");
     if(access.error)throw access.error;

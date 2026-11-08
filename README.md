@@ -7,6 +7,8 @@
 
 ## 현재 작업
 
+- 실제 식사에서 조합을 저장하고 음식 양 수정·추가·빼기·교체를 식사와 조합에 함께 반영합니다. 여러 음식의 변경을 한 번에 최대 10개까지 처리합니다.
+- 동기화 중 코치를 열면 완료를 기다려 자동 연결합니다. 응답 대기 중 작성한 다음 질문을 보존하며, 창을 닫았다 다시 열 때 이전 요청이 새 화면을 덮어쓰지 않습니다.
 - AI 코치가 같은 대화의 음식, 사용자가 지정한 양, 분석 날짜를 기억합니다.
 - `과메기 100g 먹으면?` → `그럼 반만 먹으면?` → `그러면 반만?`은 100g → 50g → 25g으로 계산합니다.
 - 기준 양이 없으면 먼저 확인합니다. 추천량이나 열량 상한을 임의로 기준 양으로 삼지 않습니다.
@@ -39,7 +41,8 @@ node scripts/check.mjs
 `supabase-config.js`에는 브라우저용 publishable key가 들어 있습니다.
 
 복구·검증 내역은 [`docs/recovery-and-coach.md`](docs/recovery-and-coach.md)를 참고하세요.
-진행 중인 배포 검증과 남은 작업은 [`docs/release-verification.md`](docs/release-verification.md)에 있습니다.
+최신 안정화 검증은 [`docs/coach-ui-verification.md`](docs/coach-ui-verification.md), 여러 음식 편집은 [`docs/coach-batch-verification.md`](docs/coach-batch-verification.md)에 있습니다.
+최초 코치 배포 검증과 운영 관측 사항은 [`docs/release-verification.md`](docs/release-verification.md)에 있습니다.
 
 ## 이전 GitHub 버전 기록 (v6.8 이후)
 

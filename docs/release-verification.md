@@ -2,6 +2,8 @@
 
 확인일: 2026-11-07 (Asia/Seoul)
 
+이 문서는 최초 코치 배포의 기록입니다. 최신 배포와 검증은 [`coach-ui-verification.md`](coach-ui-verification.md), 여러 음식 편집은 [`coach-batch-verification.md`](coach-batch-verification.md)를 참고하세요.
+
 ## 배포 결과
 
 - 운영 URL: https://meallogai.vercel.app
