@@ -275,7 +275,7 @@ function render(){
   const remove=document.createElement('button');remove.type='button';remove.className='delete';remove.textContent='×';remove.setAttribute('aria-label',(m.type||'식사')+' '+m.time.slice(11,16)+' 기록 삭제');remove.onclick=()=>{if(confirm('이 기록을 삭제할까요?')){state.meals=state.meals.filter(x=>x.id!==m.id);save();}};
   actions.append(edit,remove);card.onclick=e=>{if(!e.target.closest('button'))openMealEditor(m);};card.append(photo,content,actions);mealsEl.append(card);
  });
- window.MealLogQualityUI?.nutritionNotice(day);document.querySelectorAll('#meals .empty').forEach(box=>box.prepend(MealLogIcons.peach()));window.MealLogStreak?.render(state);renderCalendar();renderActivity();window.MealLogHome?.render();window.MealLogExercise?.render();window.MealLogWeekly?.render()
+ window.MealLogQualityUI?.nutritionNotice(day);document.querySelectorAll('#meals .empty').forEach(box=>box.prepend(MealLogIcons.peach()));window.MealLogStreak?.render(state);renderCalendar();renderActivity();window.MealLogHome?.render();window.MealLogExercise?.render();window.MealLogWeekly?.render();window.MealLogNutritionGoals?.render()
 }
 function activityFor(k){if(!state.activity[k])state.activity[k]={steps:0,water:0,waterHistory:[]};state.activity[k].waterHistory=state.activity[k].waterHistory||[];return state.activity[k]}
 function renderActivity(){

@@ -7,13 +7,15 @@
 
 ## 현재 작업
 
+- 홈에서 탄수화물·단백질·지방 목표와 날짜별 진행률을 확인하고 계정에 저장합니다. 기존 단백질 목표는 AI 코치와 공유하며 영양정보가 없으면 해당 목표 비교를 보류합니다.
+- [YAZIO 비교와 후속 보완 순서](docs/yazio-comparison.md)에 레시피 인분·식단 계획·상세 영양·건강 앱 연동의 현황을 정리했습니다.
 - 실제 식사에서 조합을 저장하고 음식 양 수정·추가·빼기·교체를 식사와 조합에 함께 반영합니다. 여러 음식의 변경을 한 번에 최대 10개까지 처리합니다.
 - 동기화 중 코치를 열면 완료를 기다려 자동 연결합니다. 응답 대기 중 작성한 다음 질문을 보존하며, 창을 닫았다 다시 열 때 이전 요청이 새 화면을 덮어쓰지 않습니다.
 - AI 코치가 같은 대화의 음식, 사용자가 지정한 양, 분석 날짜를 기억합니다.
 - `과메기 100g 먹으면?` → `그럼 반만 먹으면?` → `그러면 반만?`은 100g → 50g → 25g으로 계산합니다.
 - 기준 양이 없으면 먼저 확인합니다. 추천량이나 열량 상한을 임의로 기준 양으로 삼지 않습니다.
 - 새 대화, 다른 선택 날짜, 다른 주제로 넘어간 뒤에는 예전 음식의 양을 재사용하지 않습니다.
-- 기존 `ai_coach_messages.metadata`에 문맥을 저장합니다. DB 스키마 변경은 없습니다.
+- 후속 대화 문맥은 기존 `ai_coach_messages.metadata`에 저장합니다. 영양 목표는 `db/nutrition-goals.sql`의 추가 컬럼을 사용합니다.
 - 생성형 AI를 끈 경우나 공급자 장애 시에도 명확한 양 비교는 기록 기반으로 처리합니다.
 - AI 설명문에 숫자가 섞이면 해당 문장을 제외하고 검증된 계산표를 유지합니다. 설명이 남지 않을 때만 한 번 다시 작성합니다.
 - 식사 기록 누락 등 주의사항도 AI 설명에 전달하며, 실패 진단에는 원문·API 키를 남기지 않습니다.
@@ -41,7 +43,7 @@ node scripts/check.mjs
 `supabase-config.js`에는 브라우저용 publishable key가 들어 있습니다.
 
 복구·검증 내역은 [`docs/recovery-and-coach.md`](docs/recovery-and-coach.md)를 참고하세요.
-최신 안정화 검증은 [`docs/coach-ui-verification.md`](docs/coach-ui-verification.md), 여러 음식 편집은 [`docs/coach-batch-verification.md`](docs/coach-batch-verification.md)에 있습니다.
+최신 영양 목표 검증은 [`docs/nutrition-goals-verification.md`](docs/nutrition-goals-verification.md), 코치 안정화는 [`docs/coach-ui-verification.md`](docs/coach-ui-verification.md), 여러 음식 편집은 [`docs/coach-batch-verification.md`](docs/coach-batch-verification.md)에 있습니다.
 최초 코치 배포 검증과 운영 관측 사항은 [`docs/release-verification.md`](docs/release-verification.md)에 있습니다.
 
 ## 이전 GitHub 버전 기록 (v6.8 이후)

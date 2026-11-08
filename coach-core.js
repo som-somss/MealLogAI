@@ -61,7 +61,11 @@ export function compose(ctx){
  }else{
   lines.push(`${ctx.day} · ${today?.meal_count||0}개 식사 기록 기준이에요.`);
   if(today)for(const k of ctx.kind==='protein'?['protein']:nutrients)lines.push(`기록된 ${label[k]} ${n[k]?.value||0}${k==='calories'?'kcal':'g'}${n[k]?.missing?' (영양정보 누락 포함 · 확인된 값만 합산)':''}`);
-  if(ctx.kind==='protein'){const goal=Number(ctx.settings?.protein_goal);lines.push(goal>0?`직접 설정한 단백질 목표 ${goal}g 대비 기록상 남은 양 ${Math.max(0,Math.round((goal-(n.protein?.value||0))*10)/10)}g이에요. 실제 부족량을 진단하는 값은 아니에요.`:'단백질 목표가 설정되지 않아 부족량을 단정할 수 없어요. 코치 설정에서 직접 목표를 입력할 수 있어요.');}
+  for(const k of ctx.kind==='protein'?['protein']:['carbs','protein','fat']){
+   const goal=Number(ctx.settings?.[k+'_goal']);if(!(goal>0)){if(ctx.kind==='protein')lines.push('단백질 목표가 설정되지 않아 부족량을 단정할 수 없어요. 홈의 영양 목표 또는 코치 설정에서 직접 입력할 수 있어요.');continue;}
+   const amount=n[k]?.value||0,difference=Math.round(Math.abs(goal-amount)*10)/10;
+   lines.push(`직접 설정한 ${label[k]} 목표 ${goal}g · `+(!today?'아직 식사 기록이 없어 목표 비교를 보류해요.':n[k]?.missing?'영양정보가 빠져 있어 목표 비교를 보류해요.':amount>goal?`기록상 목표보다 ${difference}g 많아요.`:`기록상 남은 양 ${difference}g이에요.`));
+  }
   if(ctx.goal_kcal>0)lines.push(`내 열량 목표 ${ctx.goal_kcal}kcal${today?' · 기록상 남은 열량 '+Math.max(0,Math.round(ctx.goal_kcal-(n.calories?.value||0)))+'kcal':''}.`);
  }
  if(!today&&ctx.kind!=='week')warnings.push('선택 날짜에 식사 기록이 없어요. 실제로 먹지 않았다는 뜻은 아니에요.');
