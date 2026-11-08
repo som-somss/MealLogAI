@@ -7,6 +7,9 @@
 
 ## 현재 작업
 
+- 홈의 **내 조합 다시 기록하기**에서 저장 조합을 불러와 전체 비율·인분·완성 무게로 새 식사를 기록합니다. 이번에 달라진 재료의 양이나 제외 여부만 수정할 수 있습니다.
+- ‘한 알’, ‘내 밥공기’처럼 확인한 개인 분량을 음식·브랜드·단위별로 계정에 기억하고 다음 기록에서 선택합니다. 전체 2인분 중 0.5인분은 25%로 계산하며, 기존 조합의 미설정 인분·완성 무게는 추정하지 않습니다.
+- 새 조합 기록은 서버에서 다시 계산하고 한 번만 저장합니다. 연결이 끊겨도 같은 요청으로 결과를 확인하며, 오래된 조합 버전은 덮어쓰지 않습니다. 기본 조합과 과거 식사는 유지합니다.
 - 홈에서 탄수화물·단백질·지방 목표와 날짜별 진행률을 확인하고 계정에 저장합니다. 기존 단백질 목표는 AI 코치와 공유하며 영양정보가 없으면 해당 목표 비교를 보류합니다.
 - [YAZIO 비교와 차별화 개발 순서](docs/yazio-comparison.md)는 확인한 개인 식사·분량을 다음 기록에 재사용하는 흐름을 우선합니다. 공식 제약과 후기의 구분, 조합 인분 계산·수정 근거·저장 신뢰성의 완료 기준을 정리했습니다.
 - 실제 식사에서 조합을 저장하고 음식 양 수정·추가·빼기·교체를 식사와 조합에 함께 반영합니다. 여러 음식의 변경을 한 번에 최대 10개까지 처리합니다.
@@ -43,7 +46,7 @@ node scripts/check.mjs
 `supabase-config.js`에는 브라우저용 publishable key가 들어 있습니다.
 
 복구·검증 내역은 [`docs/recovery-and-coach.md`](docs/recovery-and-coach.md)를 참고하세요.
-최신 영양 목표 검증은 [`docs/nutrition-goals-verification.md`](docs/nutrition-goals-verification.md), 코치 안정화는 [`docs/coach-ui-verification.md`](docs/coach-ui-verification.md), 여러 음식 편집은 [`docs/coach-batch-verification.md`](docs/coach-batch-verification.md)에 있습니다.
+최신 조합·개인 분량 검증은 [`docs/combination-record-verification.md`](docs/combination-record-verification.md), 영양 목표 검증은 [`docs/nutrition-goals-verification.md`](docs/nutrition-goals-verification.md), 코치 안정화는 [`docs/coach-ui-verification.md`](docs/coach-ui-verification.md), 여러 음식 편집은 [`docs/coach-batch-verification.md`](docs/coach-batch-verification.md)에 있습니다.
 최초 코치 배포 검증과 운영 관측 사항은 [`docs/release-verification.md`](docs/release-verification.md)에 있습니다.
 
 ## 이전 GitHub 버전 기록 (v6.8 이후)
