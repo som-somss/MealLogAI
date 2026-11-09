@@ -1,0 +1,62 @@
+(()=>{'use strict';
+ const node=(tag,text)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;return n;};
+ const button=(text,fn)=>{const b=node('button',text);b.type='button';b.onclick=fn;return b;};
+ const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+ function mount({client,getUser,getDay,prepare,onChoose,onRecord,usage,requestFetch=fetch,onRecordsChange}){
+  const launch=button('AI 코치 · 나를 기억하는 식단 코칭  ›',()=>void open());launch.className='coachLaunch';document.querySelector('.homeGoals')?.before(launch);
+  const dialog=node('dialog');dialog.className='coachDialog';dialog.setAttribute('aria-label','AI 식단 코치');
+  const head=node('header'),close=button('닫기',()=>{cancelTask();dialog.close();});head.append(node('h2','MealLog AI 코치'),close);
+  const intro=node('p','“저장한 시오콘부볶음밥을 오늘 점심으로 기록해줘”라고 말하면 확인 후 실제 식사로 저장할 수 있어요. “시오콘부볶음밥 0.5인분을 오늘 점심으로 기록해줘”도 가능해요. “오늘 점심을 ○○으로 기억해줘”는 내 조합 저장이고, 음식의 양 수정·추가·빼기·교체도 요청할 수 있어요.');
+  const date=node('input');date.type='date';date.max=today();date.setAttribute('aria-label','분석 기준 날짜');
+  const dateLabel=node('label','분석 기준 날짜');dateLabel.append(date);
+  const history=node('select');history.setAttribute('aria-label','이전 대화');history.onchange=()=>void loadConversation(history.value);
+  const fresh=button('새 대화',()=>{if(busy)return;conversation=null;request=null;input.value='';messages.replaceChildren();status.textContent='새 질문을 입력해 주세요.';});
+  const settings=node('details');settings.append(node('summary','코치 설정'));
+  const memory=node('input');memory.type='checkbox';const memoryLabel=node('label','확인한 개인 기억 활용');memoryLabel.prepend(memory);
+  const external=node('input');external.type='checkbox';const externalLabel=node('label','생성형 AI 코치 사용');externalLabel.prepend(external);
+  const protein=node('input');protein.type='number';protein.min='1';protein.max='500';protein.step='any';protein.setAttribute('aria-label','단백질 목표 g');const proteinLabel=node('label','단백질 목표 (g, 선택)');proteinLabel.append(protein);
+  const saveSettings=button('설정 저장',()=>void task(async(check,id)=>{if(protein.value&&!protein.reportValidity())return;const r=await client.from('ai_coach_settings').upsert({user_id:id,use_food_memory:memory.checked,use_external_ai:external.checked,protein_goal:protein.value?Number(protein.value):null,updated_at:new Date().toISOString()}).select('user_id').single();check();if(r.error)throw r.error;window.dispatchEvent(new Event('meallog:nutrition-goals'));status.textContent='코치 설정을 저장했어요.';}));
+  settings.append(memoryLabel,externalLabel,node('small','켜면 OpenAI가 질문을 해석하고 답변을 작성해요. 이어지는 질문에는 같은 대화의 음식명·기준 양·분석 날짜를 참고해요. 계산에 필요한 검증된 요약을 사용하며 기존 AI 공통 한도가 적용돼요.'),proteinLabel,saveSettings);
+  const quick=node('div');quick.className='coachQuick';for(const text of ['오늘 저녁 뭐 먹을까?','오늘 단백질은 얼마나 부족해?','어제 많이 먹었는데 오늘은?','내가 자주 먹는 음식 추천','최근 7일 식습관을 알려줘'])quick.append(button(text,()=>{if(!busy){input.value=text;input.focus();}}));
+  const messages=node('section');messages.className='coachMessages';messages.setAttribute('aria-label','코치 대화');
+  const form=node('form'),input=node('textarea');input.maxLength=1500;input.required=true;input.rows=2;input.placeholder='AI 코치에게 질문하기';input.setAttribute('aria-label','AI 코치에게 질문하기');const send=node('button','보내기');send.type='submit';form.append(input,send);
+  const status=node('p');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
+  const reconnect=button('다시 연결',()=>void open(true));reconnect.hidden=true;
+  const remove=button('현재 대화 삭제',()=>void task(async(check,id)=>{if(!conversation||!confirm('이 대화만 삭제할까요? 식단과 개인 기억은 유지돼요.'))return;const r=await client.from('ai_coach_conversations').delete().eq('id',conversation).eq('user_id',id).select('id').single();check();if(r.error)throw r.error;conversation=null;request=null;messages.replaceChildren();await list(check,id);status.textContent='대화를 삭제했어요.';}));
+  dialog.append(head,intro,dateLabel,history,fresh,settings,quick,messages,form,status,reconnect,remove);document.body.append(dialog);
+  let epoch=0,owner=null,busy=false,conversation=null,request=null,active=null,draftVersion=0;
+  input.addEventListener('input',()=>draftVersion++);
+  function setBusy(value){busy=value;for(const control of [send,saveSettings,date,history,fresh,remove,reconnect])control.disabled=value;}
+  function cancelTask(){epoch++;active?.controller.abort();active=null;setBusy(false);}
+  function reset(){cancelTask();owner=getUser()?.id;conversation=null;request=null;input.value='';draftVersion++;messages.replaceChildren();history.replaceChildren();memory.checked=true;external.checked=false;protein.value='';settings.open=false;reconnect.hidden=true;dialog.close();}
+  dialog.addEventListener('cancel',cancelTask);
+  function waitForSync(signal){return new Promise((resolve,reject)=>{const finish=()=>{signal.removeEventListener('abort',abort);resolve();};const timer=setTimeout(finish,250);const abort=()=>{clearTimeout(timer);signal.removeEventListener('abort',abort);reject(Object.assign(Error('화면을 닫았어요.'),{name:'AbortError'}));};signal.addEventListener('abort',abort,{once:true});if(signal.aborted)abort();});}
+  async function task(fn,{wait=false}={}){
+   if(busy)return;setBusy(true);const ticket=epoch,id=getUser()?.id,operation={controller:new AbortController()};active=operation;
+   const check=()=>{if(ticket!==epoch||active!==operation||getUser()?.id!==id||!id)throw Error('계정이나 화면이 바뀌었어요. 다시 열어 주세요.');};
+   status.textContent='확인 중…';
+   try{
+    if(!id)throw Error('로그인한 뒤 이용해 주세요.');const deadline=Date.now()+15000;
+    // Only opening the coach waits for sync. Never automatically resend a write.
+    while(true){try{await prepare();break;}catch(e){check();if(!wait||e.code!=='MEALLOG_SYNC_PENDING')throw e;if(Date.now()>=deadline)throw Error('동기화가 지연되고 있어요. 연결을 확인한 뒤 다시 연결을 눌러 주세요.');status.textContent='기록을 동기화하고 있어요. 끝나면 자동으로 연결돼요. 질문은 미리 입력할 수 있어요.';await waitForSync(operation.controller.signal);check();}}
+    check();await fn(check,id,operation.controller);check();
+   }catch(e){if(ticket===epoch&&active===operation&&getUser()?.id===id){status.textContent=(e.name==='AbortError'?'답변이 늦어지고 있어요. 다시 시도해 주세요.':e.message||'완료하지 못했어요.')+' 입력은 유지돼요.';if(wait)reconnect.hidden=false;}}
+   finally{if(active===operation){active=null;setBusy(false);}}
+  }
+  async function list(check,id){const r=await client.from('ai_coach_conversations').select('id,title,created_at').eq('user_id',id).order('created_at',{ascending:false}).limit(30);check();if(r.error)throw r.error;history.replaceChildren();const o=node('option','이전 대화 선택 (최근 30개)');o.value='';history.append(o);for(const c of r.data){const o=node('option',c.title);o.value=c.id;history.append(o);}history.value=conversation||'';}
+  async function open(retrying=false){if(busy)return;if(owner!==getUser()?.id)reset();owner=getUser()?.id;epoch++;if(!retrying||!date.value)date.value=getDay?.()||today();date.max=today();reconnect.hidden=true;if(!dialog.open)dialog.showModal();await task(async(check,id)=>{const r=await client.from('ai_coach_settings').select('use_food_memory,use_external_ai,protein_goal').eq('user_id',id).maybeSingle();check();if(r.error)throw r.error;memory.checked=r.data?.use_food_memory!==false;external.checked=!!r.data?.use_external_ai;protein.value=r.data?.protein_goal||'';await list(check,id);status.textContent='날짜를 확인하고 질문해 주세요. 오늘·어제라는 표현은 선택 날짜와 다를 수 있어요.';},{wait:true});}
+  function bubble(role,text,data={}){const box=node('article');box.className='coachBubble '+role;box.append(node('small',role==='user'?'나':data.mode||'AI 코치'),node('p',text));if(data.advice){box.append(node('small','AI 조언 · 참고용'),node('p',data.advice));}for(const warning of data.warnings||[])box.append(node('small',warning));if(data.evidence?.length){const details=node('details');details.append(node('summary','답변 근거'),node('p',data.evidence.join('\n')));box.append(details);}
+   if(role==='assistant'&&data.combination_record?.status==='ready'&&data.combination_record.draft&&onRecord){const draft=data.combination_record.draft,recordOwner=owner,card=node('section');card.className='coachMenu';card.append(node('b',data.combination_record.name||'내 조합'),node('p',draft.day+' '+draft.meal_type),button('기록할 내용 확인',()=>{if(busy||!getUser()||getUser().id!==recordOwner||owner!==recordOwner)return;const id=recordOwner;cancelTask();dialog.close();Promise.resolve().then(()=>{if(getUser()?.id!==id)throw Error('계정이 바뀌었어요.');return onRecord(draft);}).catch(e=>{if(getUser()?.id===id){dialog.showModal();status.textContent=e.message||'기록 화면을 열지 못했어요.';}});}));box.append(card);}
+   for(const suggestion of data.suggestions||[]){const card=node('section');card.className='coachMenu';card.append(node('b',suggestion.title),node('p',suggestion.foods.map(f=>f.name+' '+f.grams+(f.unit||'g')).join(', ')),node('small',suggestion.reason),node('p',['calories','carbs','protein','fat'].map((k,i)=>['열량','탄수','단백질','지방'][i]+' '+(suggestion.totals[k]??'미확인')+(suggestion.totals[k]==null?'':i===0?'kcal':'g')).join(' · ')),...(suggestion.preparation?[node('p',suggestion.preparation)]:[]),button('메뉴 확인 후 기록 초안 열기',()=>{if(busy)return;if(!getUser()||getUser().id!==owner)return;if(!confirm('이 메뉴를 기록 초안으로 가져올까요? 날짜와 실제 먹은 양을 확인한 뒤 별도로 저장해 주세요.'))return;const id=owner,day=date.value;if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||day>today()){status.textContent='기록할 날짜를 먼저 확인해 주세요.';return;}epoch++;dialog.close();Promise.resolve(onChoose(suggestion.foods,'AI 코치 추천 · '+suggestion.reason,day)).catch(e=>{if(getUser()?.id===id){dialog.showModal();status.textContent=e.message||'초안을 열지 못했어요. 다시 시도해 주세요.';}});}));box.append(card);}
+   messages.append(box);box.scrollIntoView({block:'nearest'});
+  }
+  async function loadConversation(id){if(busy||!id)return;await task(async(check,user)=>{const r=await client.from('ai_coach_messages').select('role,content,metadata,created_at').eq('user_id',user).eq('conversation_id',id).order('created_at',{ascending:false}).order('role').limit(100);check();if(r.error)throw r.error;conversation=id;request=null;messages.replaceChildren();for(const m of [...r.data].reverse())bubble(m.role,m.content,m.metadata);status.textContent='최근 메시지 최대 100개를 불러왔어요. 같은 대화의 음식과 기준 양을 참고해 이어서 질문할 수 있어요.';});}
+  form.onsubmit=e=>{e.preventDefault();if(busy||!form.reportValidity())return;const draft=input.value,version=draftVersion,question=draft.trim(),day=date.value,currentConversation=conversation;if(!question)return;const signature=JSON.stringify([question,day,currentConversation]);if(request?.signature!==signature)request={signature,id:crypto.randomUUID()};const submitted=request;void task(async(check,id,controller)=>{
+   const {data,error}=await client.auth.getSession();check();if(error||data.session?.user?.id!==id)throw Error('로그인을 다시 확인해 주세요.');const timer=setTimeout(()=>controller.abort(),55000);let result;
+   try{const response=await requestFetch('/api/ai-coach',{method:'POST',headers:{Authorization:'Bearer '+data.session.access_token,'Content-Type':'application/json'},body:JSON.stringify({message:question,selected_date:day,request_id:submitted.id,conversation_id:currentConversation}),cache:'no-store',signal:controller.signal});result=await response.json();check();if(!response.ok||result.ok!==true)throw Error(result.message||'응답을 확인하지 못했어요.');}finally{clearTimeout(timer);}
+   if(result.usage)usage?.accept(result.usage,id);conversation=result.conversation_id;bubble('user',question);bubble('assistant',result.reply,result);if(input.value===draft&&draftVersion===version)input.value='';request=null;status.textContent=result.record_edit?(['updated','unchanged'].includes(result.record_edit.status)?'기록과 조합의 수정 결과를 확인해 주세요.':'수정 안내를 확인해 주세요.'):['saved','already_saved'].includes(result.memory_save?.status)?'내 조합에 저장되어 있어요. 식단 비서의 내 조합에서 확인할 수 있어요.':result.memory_save?'저장 안내를 확인해 주세요.':'대화를 저장했어요. 식단은 메뉴 확인 후 별도로 저장해 주세요.';if(['updated','unchanged'].includes(result.record_edit?.status)&&result.record_edit.meal_id){try{await onRecordsChange?.();check();}catch(e){check();status.textContent='수정은 저장됐어요. 목록을 새로고침해 최신 기록을 확인해 주세요.';}}try{await list(check,id);}catch(e){check();status.textContent='답변은 저장했어요. 대화 목록 갱신은 다시 열어 확인해 주세요.';}
+  });};
+  return {accountChanged(){if(owner!==getUser()?.id)reset();},reset,open};
+ }
+ window.MealLogCoach={mount};
+})();

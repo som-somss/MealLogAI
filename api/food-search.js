@@ -1,103 +1,20 @@
-function num(v){
-  const m=String(v??'').replace(/,/g,'').match(/-?\d+(?:\.\d+)?/);
-  const x=m?Number(m[0]):0;
-  return Number.isFinite(x)?x:0;
-}
-function txt(v){ return String(v??'').trim(); }
-function itemsOf(data){
-  const raw=data?.body?.items ?? data?.response?.body?.items ?? data?.items ?? [];
-  if(Array.isArray(raw)) return raw;
-  if(Array.isArray(raw?.item)) return raw.item;
-  return raw?.item ? [raw.item] : [];
-}
-function parseAmount(s){
-  const t=txt(s);
-  const m=t.match(/([\d,.]+)\s*(mL|ml|g|G|kg|KG|L|l)\b/);
-  if(!m) return {amount:num(t)||100,unit:'g'};
-  let amount=num(m[1]), unit=m[2].toLowerCase();
-  if(unit==='kg'){amount*=1000;unit='g'}
-  if(unit==='l'){amount*=1000;unit='ml'}
-  return {amount:amount||100,unit:unit==='ml'?'mL':'g'};
-}
-function mfdsItem(o){
-  const serving=txt(o.SERVING_SIZE||o.NUTRI_AMOUNT_SERVING||o.DISH_ONE_SERVING||'100g');
-  const a=parseAmount(serving);
-  return {
-    source:'mfds',
-    name:txt(o.FOOD_NM_KR),
-    maker:txt(o.MAKER_NM),
-    basis:serving||`${a.amount}${a.unit}`,
-    foodSize:serving||`${a.amount}${a.unit}`,
-    weight:a.amount,
-    nutritionBase:a.amount,
-    productAmount:a.amount,
-    displayAmount:a.amount,
-    unit:a.unit,
-    calories:num(o.AMT_NUM1),
-    protein:num(o.AMT_NUM3),
-    fat:num(o.AMT_NUM4),
-    carbs:num(o.AMT_NUM7)
-  };
-}
+import '../food-query.js';
+import '../nobrand-foods.js';
+import '../chicken-foods.js';
+import '../convenience-foods.js';
+import '../variety-foods.js';
+const Q=globalThis.MealLogFoodQuery;
+const txt=v=>String(v??'').trim();
+function num(value){const match=String(value??'').replace(/,/g,'').match(/-?\d+(?:\.\d+)?/),n=match?Number(match[0]):0;return Number.isFinite(n)?n:0;}
+function itemsOf(data){const raw=data?.body?.items??data?.response?.body?.items??data?.items??[];return Array.isArray(raw)?raw:Array.isArray(raw?.item)?raw.item:raw?.item?[raw.item]:[];}
+function parseAmount(value){const text=txt(value).replace(/[()]/g,''),match=text.match(/([\d,.]+)\s*(ml|g|kg|l)\b/i);if(!match)return{amount:num(text)||100,unit:'g'};let amount=num(match[1]),unit=match[2].toLowerCase();if(unit==='kg'){amount*=1000;unit='g';}if(unit==='l'){amount*=1000;unit='ml';}return{amount:amount||100,unit:unit==='ml'?'mL':'g'};}
+function mfdsItem(row){if([row.AMT_NUM1,row.AMT_NUM3,row.AMT_NUM4,row.AMT_NUM6].some(v=>v==null||String(v).trim()===''||!/\d/.test(String(v))||num(v)<0))return null;const serving=txt(row.SERVING_SIZE||row.NUTRI_AMOUNT_SERVING||row.DISH_ONE_SERVING||'100g'),a=parseAmount(serving);return{source:'mfds',foodCode:txt(row.FOOD_CD),name:txt(row.FOOD_NM_KR),maker:txt(row.MAKER_NM),basis:serving,foodSize:serving,weight:a.amount,nutritionBase:a.amount,productAmount:a.amount,displayAmount:a.amount,unit:a.unit,calories:num(row.AMT_NUM1),protein:num(row.AMT_NUM3),fat:num(row.AMT_NUM4),carbs:num(row.AMT_NUM6)};}
 export default async function handler(req,res){
-  res.setHeader('Cache-Control','no-store, max-age=0');
-  const q=txt(req.query?.q);
-  if(q.length<2) return res.status(200).json({items:[],errors:[]});
-
-  const key=txt(process.env.FOOD_API_KEY);
-  const mfds=[], off=[], errors=[];
-
-  if(key){
-    try{
-      const u=new URL('https://apis.data.go.kr/1471000/FoodNtrCpntDbInfo03/getFoodNtrCpntDbInq03');
-      u.searchParams.set('serviceKey',key);
-      u.searchParams.set('type','json');
-      u.searchParams.set('pageNo','1');
-      u.searchParams.set('numOfRows','20');
-      u.searchParams.set('FOOD_NM_KR',q);
-      const r=await fetch(u,{headers:{Accept:'application/json'}});
-      const data=await r.json();
-      if(!r.ok) errors.push('MFDS_HTTP_'+r.status);
-      for(const o of itemsOf(data)){
-        const x=mfdsItem(o);
-        if(x.name) mfds.push(x);
-      }
-    }catch(e){ errors.push('MFDS'); }
-  }else errors.push('MFDS_KEY');
-
-  // 보조 제품 DB: 식약처에 없는 해외/바코드 제품 검색용
-  try{
-    const u=new URL('https://world.openfoodfacts.org/cgi/search.pl');
-    u.searchParams.set('search_terms',q);
-    u.searchParams.set('search_simple','1');
-    u.searchParams.set('action','process');
-    u.searchParams.set('json','1');
-    u.searchParams.set('page_size','12');
-    const r=await fetch(u,{headers:{'User-Agent':'MealLogAI/1.0'}});
-    const d=await r.json();
-    for(const p of (d.products||[])){
-      const name=txt(p.product_name_ko||p.product_name||p.generic_name_ko||p.generic_name);
-      if(!name) continue;
-      const nu=p.nutriments||{}, qty=txt(p.quantity||p.serving_size||'');
-      const a=parseAmount(qty||'100g');
-      off.push({
-        source:'off',name,maker:txt(p.brands),barcode:txt(p.code),
-        foodSize:qty,basis:'100g/mL',weight:100,nutritionBase:100,
-        displayAmount:a.amount,productAmount:a.amount,unit:a.unit,
-        calories:num(nu['energy-kcal_100g']??nu['energy-kcal']),
-        carbs:num(nu.carbohydrates_100g??nu.carbohydrates),
-        protein:num(nu.proteins_100g??nu.proteins),
-        fat:num(nu.fat_100g??nu.fat)
-      });
-    }
-  }catch(e){ errors.push('OFF'); }
-
-  const seen=new Set(),items=[];
-  for(const x of [...mfds,...off]){
-    const k=(x.name+'|'+x.maker).toLowerCase().replace(/\s/g,'');
-    if(seen.has(k)) continue;
-    seen.add(k); items.push(x);
-    if(items.length>=24) break;
-  }
-  return res.status(200).json({items,errors});
+ res.setHeader('Cache-Control','no-store, max-age=0');const q=txt(req.query?.q).slice(0,120),page=Math.min(10,Math.max(1,Math.floor(Number(req.query?.page)||1)));if(q.length<2||!Q.terms(q).length)return res.status(200).json({items:[],errors:[],nextPage:null});
+ const local=page===1?[...globalThis.MealLogNoBrandFoods.search(q),...globalThis.MealLogChickenFoods.search(q),...globalThis.MealLogConvenienceFoods.search(q),...globalThis.MealLogVarietyFoods.search(q)]:[];if(local.length&&req.query?.remote!=='1'){const seen=new Set();return res.status(200).json({items:Q.search(q,local).filter(f=>{const k=Q.key(f);if(seen.has(k))return false;seen.add(k);return true;}),errors:[],nextPage:null,externalAvailable:true});}
+ const key=txt(process.env.FOOD_API_KEY),errors=[],secondaryErrors=[],mfds=[],off=[];let hasMore=false,offMore=false;const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5000);
+ const secondary=(async()=>{try{const url=new URL('https://search.openfoodfacts.org/search');url.searchParams.set('q',q.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu,' ').trim());url.searchParams.set('langs','ko,en');url.searchParams.set('page_size','24');url.searchParams.set('page',String(page));url.searchParams.set('fields','code,product_name,product_name_ko,generic_name,brands,nutriments,quantity,serving_size');const response=await fetch(url,{headers:{'User-Agent':'MealLogAI/1.0'},signal:controller.signal});if(!response.ok)throw Error('OFF_HTTP');const data=await response.json();if(!Array.isArray(data.hits))throw Error('OFF_FORMAT');offMore=Number(data.page_count)>page;for(const item of data.hits){const name=txt(item.product_name_ko||item.product_name||item.generic_name_ko||item.generic_name);if(!name)continue;const values=['energy-kcal_100g','carbohydrates_100g','proteins_100g','fat_100g'].map(k=>item.nutriments?.[k]);if(values.some(v=>v==null||v===''||!Number.isFinite(Number(v))||Number(v)<0))continue;const qty=txt(item.quantity||item.serving_size),amount=parseAmount(qty||'100g');off.push({source:'off',name,maker:Array.isArray(item.brands)?item.brands.join(' · '):txt(item.brands),barcode:txt(item.code),foodSize:qty,basis:'100g/mL',weight:100,nutritionBase:100,displayAmount:amount.amount,productAmount:amount.amount,unit:amount.unit,calories:Number(values[0]),carbs:Number(values[1]),protein:Number(values[2]),fat:Number(values[3])});}}catch{secondaryErrors.push('OFF');}finally{clearTimeout(timer);}})();
+ if(key){const batches=await Promise.all(Q.searchPlan(q).map(async filters=>{try{const url=new URL('https://apis.data.go.kr/1471000/FoodNtrCpntDbInfo03/getFoodNtrCpntDbInq03');url.searchParams.set('serviceKey',key);url.searchParams.set('type','json');url.searchParams.set('pageNo',String(page));url.searchParams.set('numOfRows','100');for(const [name,value]of Object.entries(filters))url.searchParams.set(name,value);const response=await fetch(url,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(8000)});if(!response.ok){errors.push('MFDS_HTTP_'+response.status);return[];}const data=await response.json(),code=txt(data?.header?.resultCode||data?.response?.header?.resultCode);if(code&&!['00','0','INFO-000'].includes(code)){errors.push('MFDS_RESULT');return[];}const rows=itemsOf(data);if(rows.length>=100)hasMore=true;return rows.map(mfdsItem).filter(f=>f?.name&&Q.matches(q,f));}catch{errors.push('MFDS');return[];}}));mfds.push(...batches.flat());}else errors.push('MFDS_KEY');
+ if(local.length||mfds.length){controller.abort();await secondary;}else{await secondary;errors.push(...secondaryErrors);hasMore=hasMore||offMore;}
+ const seen=new Set(),all=Q.search(q,[...local,...mfds,...(!local.length&&!mfds.length?off:[])]),items=all.filter(food=>{const key=Q.key(food);if(seen.has(key))return false;seen.add(key);return true;});return res.status(200).json({items,errors:[...new Set(errors)],nextPage:hasMore&&page<10?page+1:null});
 }

@@ -1,0 +1,315 @@
+{
+  "deploymentId": "dpl_9Sibbh8EunMMUng8P6wCKgd5sU69",
+  "productionUrl": "https://meallogai.vercel.app",
+  "recoveredOn": "2026-11-07",
+  "files": [
+    {
+      "path": "ai-coach.css",
+      "sha1": "ca4c28b6863c8f00fdbce86b91347425d1332af4"
+    },
+    {
+      "path": "ai-coach.js",
+      "sha1": "5bddd4b835128ab3da029b309e5fec101e85156b"
+    },
+    {
+      "path": "ai-usage.js",
+      "sha1": "00a6ab796220ad1efaa170479bc0634a58e9647b"
+    },
+    {
+      "path": "analyze.js",
+      "sha1": "d3808f3b77726b3d7c1bc9061c9f9bc0c93fdb6c"
+    },
+    {
+      "path": "api/analyze.js",
+      "sha1": "d3808f3b77726b3d7c1bc9061c9f9bc0c93fdb6c"
+    },
+    {
+      "path": "api/ai-coach.js",
+      "sha1": "497acf8df052d27be9aa75b0b10375c63efc4e01"
+    },
+    {
+      "path": "api/barcode.js",
+      "sha1": "4055f1633c314c5f0504f12f961e84842ff5f8c1"
+    },
+    {
+      "path": "api/food-diagnostic.js",
+      "sha1": "a0a2044edcf74cd1e7425f9540632726b64b0ed3"
+    },
+    {
+      "path": "api/food-search.js",
+      "sha1": "6226b22d84dfacea51b325244f498ec0034f2cd9"
+    },
+    {
+      "path": "api/meal-assistant.js",
+      "sha1": "6b1cf121b3497086100a262b027ba61c7d21d7ab"
+    },
+    {
+      "path": "api/nutrition-label.js",
+      "sha1": "40a7422df5fb2c2113ed0ba1307eb124860ae25b"
+    },
+    {
+      "path": "api/shortcut-steps.js",
+      "sha1": "de7d3db4ec64ffabb722169e3fd12afa37da6fc1"
+    },
+    {
+      "path": "app.js",
+      "sha1": "9b18df0334e3d6678e713fe5546a573fcc34c265"
+    },
+    {
+      "path": "assistant-client.js",
+      "sha1": "ff80a35c2632822b0a65929297a2537a083c33a3"
+    },
+    {
+      "path": "barcode-entry.js",
+      "sha1": "5e3fd53ac4243510f4464cecefb7ecae88ea6017"
+    },
+    {
+      "path": "barcode.js",
+      "sha1": "2b7c6074e201019cf0e188d384c5f0da5643530b"
+    },
+    {
+      "path": "calorie-gauge.js",
+      "sha1": "83c3689bf05f41d8916b475a001cb649bb5d6528"
+    },
+    {
+      "path": "calorie-trend.js",
+      "sha1": "71c1e9716eef3c9f840d0c248343ca270635bf0d"
+    },
+    {
+      "path": "challenge-chat.js",
+      "sha1": "4209ee64a71c4dc4545037d6d11155771ad0bb48"
+    },
+    {
+      "path": "challenges.js",
+      "sha1": "8e82051378593bf0f5a1fcc589e9e7796379d7f3"
+    },
+    {
+      "path": "chicken-foods.js",
+      "sha1": "8aa145cb593aa57ae5ef1210f2ada5988fa6b1b9"
+    },
+    {
+      "path": "cloud.js",
+      "sha1": "c3c6d8314038aced5f790b40dc6f2ccc4f398172"
+    },
+    {
+      "path": "coach-catalog.js",
+      "sha1": "2321ca716291dc490ec4f3215408cc6b0c34b219"
+    },
+    {
+      "path": "coach-core.js",
+      "sha1": "ea8cd0b468079a3f0ae56ca44d51a02bababb0a7"
+    },
+    {
+      "path": "coach-food-budget.js",
+      "sha1": "8928d752c31c7b108636ed20430f172d7d23bcbf"
+    },
+    {
+      "path": "coach-generation.js",
+      "sha1": "99abd70523075b464a053e0d49e320672a94b0b8"
+    },
+    {
+      "path": "coach-menu-builder.js",
+      "sha1": "fde6d8f5246429231519e7ca35cde0d206313f23"
+    },
+    {
+      "path": "convenience-foods.js",
+      "sha1": "e63f39edc315b3ee2d1018a260b36d1302625d93"
+    },
+    {
+      "path": "entry-icons/barcode.svg",
+      "sha1": "f047f37857dc710753773a6c984af596e36e7c66"
+    },
+    {
+      "path": "entry-icons/camera.svg",
+      "sha1": "8e35ba00c625852ae0f02c345999c8da34d0272b"
+    },
+    {
+      "path": "entry-icons/chat.svg",
+      "sha1": "56189b76258eadf492456cdc0fb47b44accfb756"
+    },
+    {
+      "path": "entry-icons/search.svg",
+      "sha1": "0e8d043aed8554764b93db8e413bfb59a5ec0a69"
+    },
+    {
+      "path": "exercise-core.js",
+      "sha1": "3afcc32ef0d64ba4832c0847553d8b89d8702617"
+    },
+    {
+      "path": "exercise.js",
+      "sha1": "d60524eddb7d003ceeb838a79647a1d9a18048cd"
+    },
+    {
+      "path": "food-memory-core.js",
+      "sha1": "3fe8ba537b91109696c562f2270fe25d8101a866"
+    },
+    {
+      "path": "food-memory.css",
+      "sha1": "5ecec10c498c8b0f8ca0b011913e0dcf2bea57ef"
+    },
+    {
+      "path": "food-memory.js",
+      "sha1": "01d6fda3bfd27ff5282e61cace3b20f8dba86a0e"
+    },
+    {
+      "path": "food-query.js",
+      "sha1": "b4ec94667e900cf721888585d613054a3eab1b98"
+    },
+    {
+      "path": "food-search.js",
+      "sha1": "058d1b24d1551abc6b30de98474f19f1e38b3fb1"
+    },
+    {
+      "path": "friends.js",
+      "sha1": "564e5f601b6b7ee6993f7d988e64d1cc9ab2226e"
+    },
+    {
+      "path": "home-goals.js",
+      "sha1": "4cc30cfed181f75d49e32722dbcfcdb49eedf903"
+    },
+    {
+      "path": "icon-192.png",
+      "sha1": "552bf69f54bd3322ed626149848a3b7576dbdcf5"
+    },
+    {
+      "path": "icons/icon-192.png",
+      "sha1": "552bf69f54bd3322ed626149848a3b7576dbdcf5"
+    },
+    {
+      "path": "icons/icon-512.png",
+      "sha1": "7e9354fe2a4740b55068c22e1c19c6482910c034"
+    },
+    {
+      "path": "icon-512.png",
+      "sha1": "7e9354fe2a4740b55068c22e1c19c6482910c034"
+    },
+    {
+      "path": "index.html",
+      "sha1": "1ae25da2c32187c2c8808ff62879ac5c78b9c2e0"
+    },
+    {
+      "path": "korean-foods.js",
+      "sha1": "45747d0e2249063fd58912e73205b7060579183e"
+    },
+    {
+      "path": "manifest.webmanifest",
+      "sha1": "e51314b9267d709feb186a38b99a3e2edc0c583b"
+    },
+    {
+      "path": "manual-list.js",
+      "sha1": "af86225ec8ba72d205bcc6b9e6872301a1874a66"
+    },
+    {
+      "path": "meal-combinations.js",
+      "sha1": "9cf1e4b807cdddad668b9def12904b9bf7ad204d"
+    },
+    {
+      "path": "meal-icons.js",
+      "sha1": "931ed8a4fc5f600ae90ad252b84fe4cfce98c04a"
+    },
+    {
+      "path": "meal-list-entry.css",
+      "sha1": "535039484eeb1b2d953260c0e03abe7f9675f04d"
+    },
+    {
+      "path": "meal-list-entry.js",
+      "sha1": "25cea219ed99a9b4ec8593f51220c4a6bf851b57"
+    },
+    {
+      "path": "meal-recovery.js",
+      "sha1": "90c91470970eab400886a9f87209eaeeeb449121"
+    },
+    {
+      "path": "meal-stats.js",
+      "sha1": "e1bf2fe2f703dae18d696a7bfe9e80a85c45bf24"
+    },
+    {
+      "path": "meal-sync.js",
+      "sha1": "f4fb24bb7a8bbb5603e93b01c4671729b045cc3d"
+    },
+    {
+      "path": "nobrand-foods.js",
+      "sha1": "6492736ec7ac628c9212c780a7ff1d9bd1265612"
+    },
+    {
+      "path": "nutrition-label-ui.js",
+      "sha1": "aeb207856b3b7e728a502573c742a74e8c3d837b"
+    },
+    {
+      "path": "package.json",
+      "sha1": "f8e7e95bfd0c3f4a86f7c6e5387d0b8d0f07fa25"
+    },
+    {
+      "path": "personal-memory.css",
+      "sha1": "3dc10025f843359bb516645087a672aadf38676d"
+    },
+    {
+      "path": "personal-memory.js",
+      "sha1": "16450e4677232ac920b05455cac21506e0d6e226"
+    },
+    {
+      "path": "photo-rotate.js",
+      "sha1": "2cbef70fee2db24a25eaa141383bd8eefbe4cfc8"
+    },
+    {
+      "path": "photo-storage.js",
+      "sha1": "387340817495120b4411dbd4e60eee22a778abd8"
+    },
+    {
+      "path": "quality-core.js",
+      "sha1": "bb922a9e369d6690ddcb8f9b53b88241c266691a"
+    },
+    {
+      "path": "quality-ui.js",
+      "sha1": "80b6e17ee967325c8af95cfa60feb36e27f9727f"
+    },
+    {
+      "path": "quality.css",
+      "sha1": "d8b46af9e54c3c0240e4e8bda3a70f96cab8d8d8"
+    },
+    {
+      "path": "record-streak.js",
+      "sha1": "276506a32864511a70ff1cc5afafb512b21a2f18"
+    },
+    {
+      "path": "repeat-records.js",
+      "sha1": "c315159d706675f88e1cd61aad7b05e240948885"
+    },
+    {
+      "path": "reset-records.js",
+      "sha1": "39a6e49d98045f8ddcc3268bfcbbfc5434f43852"
+    },
+    {
+      "path": "shortcut.js",
+      "sha1": "4d193873b8f839b5e62b479406d6958eb202d5c8"
+    },
+    {
+      "path": "style.css",
+      "sha1": "7d112fe48db99f9d0e7cb32ed040c01f881c05a3"
+    },
+    {
+      "path": "supabase-config.js",
+      "sha1": "7cb827140fec12e3aad8186d9eb6c41301495d52"
+    },
+    {
+      "path": "sw.js",
+      "sha1": "012bac8284e58489c3b33487e8f90f4caa8920af"
+    },
+    {
+      "path": "variety-foods.js",
+      "sha1": "32d018fc5b8b577129c234a1bfa924a87147e1fa"
+    },
+    {
+      "path": "vercel.json",
+      "sha1": "a9928ef93de86c895b6de17d377642b342a8849d"
+    },
+    {
+      "path": "water-sync.js",
+      "sha1": "556d99874d788cf00f7f459410e616306b244352"
+    },
+    {
+      "path": "weekly-review.js",
+      "sha1": "593c8fdb29981805f521e2cdddf3ee922a35c38f"
+    }
+  ]
+}
