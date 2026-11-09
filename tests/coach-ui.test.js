@@ -10,7 +10,7 @@ const flush=async()=>{for(let i=0;i<30;i++)await Promise.resolve();};
 const pendingSync=()=>Object.assign(Error('먼저 기존 기록 동기화를 마친 뒤 다시 열어 주세요.'),{code:'MEALLOG_SYNC_PENDING'});
 
 // Exercise the actual browser script with controllable DOM, network and timers.
-function harness({prepare=async()=>{},query,fetcher}={}){
+function harness({prepare=async()=>{},query,fetcher,onRecord}={}){
  class Element {
   constructor(tag){this.tag=tag;this.children=[];this.attrs={};this.events={};this.value='';this.disabled=false;this.hidden=false;this.open=false;this.textContent='';}
   append(...children){this.children.push(...children);}
@@ -38,7 +38,7 @@ function harness({prepare=async()=>{},query,fetcher}={}){
  class Clock extends Date {static now(){return now;}}
  runInNewContext(source,{window,document,Intl,Date:Clock,AbortController,crypto:{randomUUID},fetch:()=>{throw Error('unexpected fetch');},confirm:()=>true,
   setTimeout:(fn,ms)=>{const id=++sequence;timers.set(id,{fn,at:now+ms});return id;},clearTimeout:id=>timers.delete(id)});
- const panel=window.MealLogCoach.mount({client,getUser:()=>user,getDay:()=>new Date().toISOString().slice(0,10),prepare,requestFetch:async(url,options)=>{
+ const panel=window.MealLogCoach.mount({client,getUser:()=>user,getDay:()=>new Date().toISOString().slice(0,10),prepare,onRecord,requestFetch:async(url,options)=>{
   requests.push(options);return fetcher?fetcher(url,options):Response.json({ok:true,conversation_id:'conversation',reply:'저장한 답변'});
  }});
  const all=()=>{const found=[];function visit(e){found.push(e);for(const c of e.children)visit(c);}visit(body);return found;};
@@ -139,4 +139,18 @@ test('editing a draft back to the submitted text still preserves it after the re
  h.type('원래 질문');h.submit();await flush();h.type('다른 질문');h.type('원래 질문');
  response.resolve(Response.json({ok:true,conversation_id:'conversation',reply:'답변'}));await flush();
  assert.equal(h.input.value,'원래 질문');
+});
+
+test('coach opens a stored repeat draft only on click and blocks an old-account action',async()=>{
+ const draft={version:1,request_id:randomUUID(),combination_id:randomUUID(),revision:0,day:'2026-11-07',meal_type:'점심',mode:'servings',quantity:.5},opened=[];
+ const h=harness({onRecord:d=>opened.push(d),fetcher:()=>Response.json({ok:true,conversation_id:'conversation',reply:'아직 식사로 저장하지 않았어요.',combination_record:{status:'ready',name:'볶음밥',draft}})});
+ await h.panel.open();h.type('볶음밥 오늘 점심으로 기록해줘');h.submit();await flush();assert.equal(opened.length,0);const action=h.find('button','기록할 내용 확인');assert.ok(action);
+ action.onclick();await flush();assert.deepEqual(JSON.parse(JSON.stringify(opened[0])),draft);assert.equal(h.find('dialog').open,false);
+ h.setUser({id:'other'});action.onclick();await flush();assert.equal(opened.length,1);
+});
+
+test('repeat draft button survives conversation reopening and failed handoff reports failure',async()=>{
+ const draft={day:'2026-11-07',meal_type:'점심'},data={combination_record:{status:'ready',name:'볶음밥',draft}};
+ const h=harness({onRecord:()=>{throw Error('기록 화면 연결 실패');},query:call=>({data:call.table==='ai_coach_messages'?[{role:'assistant',content:'아직 식사로 저장하지 않았어요.',metadata:data}]:call.table==='ai_coach_settings'?{}:[],error:null})});
+ await h.panel.open();const select=h.find('select');select.value='conversation';select.onchange();await flush();const action=h.find('button','기록할 내용 확인');assert.ok(action);action.onclick();await flush();assert.equal(h.find('dialog').open,true);assert.match(h.status.textContent,/기록 화면 연결 실패/);
 });

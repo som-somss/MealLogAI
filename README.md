@@ -7,6 +7,7 @@
 
 ## 현재 작업
 
+- AI 코치에서 “저장한 시오콘부볶음밥을 오늘 점심으로 기록해줘”, “시오콘부볶음밥 0.5인분을 오늘 점심으로 기록해줘”로 기록 초안을 준비합니다. **기록할 내용 확인 → 식사 저장 전 확인 → 확인하고 식사 저장** 후 실제 식사에 반영됩니다. 같은 대화의 요청을 다시 열면 기존 식사를 조회합니다.
 - 홈의 **내 조합 다시 기록하기**에서 저장 조합을 불러와 전체 비율·인분·완성 무게로 새 식사를 기록합니다. 이번에 달라진 재료의 양이나 제외 여부만 수정할 수 있습니다.
 - ‘한 알’, ‘내 밥공기’처럼 확인한 개인 분량을 음식·브랜드·단위별로 계정에 기억하고 다음 기록에서 선택합니다. 전체 2인분 중 0.5인분은 25%로 계산하며, 기존 조합의 미설정 인분·완성 무게는 추정하지 않습니다.
 - 새 조합 기록은 서버에서 다시 계산하고 한 번만 저장합니다. 연결이 끊겨도 같은 요청으로 결과를 확인하며, 오래된 조합 버전은 덮어쓰지 않습니다. 기본 조합과 과거 식사는 유지합니다.
@@ -46,7 +47,7 @@ node scripts/check.mjs
 `supabase-config.js`에는 브라우저용 publishable key가 들어 있습니다.
 
 복구·검증 내역은 [`docs/recovery-and-coach.md`](docs/recovery-and-coach.md)를 참고하세요.
-최신 조합·개인 분량 검증은 [`docs/combination-record-verification.md`](docs/combination-record-verification.md), 영양 목표 검증은 [`docs/nutrition-goals-verification.md`](docs/nutrition-goals-verification.md), 코치 안정화는 [`docs/coach-ui-verification.md`](docs/coach-ui-verification.md), 여러 음식 편집은 [`docs/coach-batch-verification.md`](docs/coach-batch-verification.md)에 있습니다.
+최신 대화→조합 기록 검증은 [`docs/coach-record-verification.md`](docs/coach-record-verification.md), 조합·개인 분량 검증은 [`docs/combination-record-verification.md`](docs/combination-record-verification.md), 영양 목표 검증은 [`docs/nutrition-goals-verification.md`](docs/nutrition-goals-verification.md), 코치 안정화는 [`docs/coach-ui-verification.md`](docs/coach-ui-verification.md), 여러 음식 편집은 [`docs/coach-batch-verification.md`](docs/coach-batch-verification.md)에 있습니다.
 최초 코치 배포 검증과 운영 관측 사항은 [`docs/release-verification.md`](docs/release-verification.md)에 있습니다.
 
 ## 이전 GitHub 버전 기록 (v6.8 이후)

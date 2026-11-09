@@ -26,8 +26,13 @@
   function clearPending(){if(owner)localStorage.removeItem(journal(owner));pending=null;}
   function recover(){try{const p=JSON.parse(localStorage.getItem(journal(owner))||'null');return p?.owner===owner&&/^[a-f0-9-]{36}$/i.test(p.args?.p_request)&&p.args?.p_combination?p:null;}catch{return null;}}
   async function load(query,id){const [saved,approved]=await Promise.all([query(client.from('meal_combinations').select('*').eq('user_id',id).order('updated_at',{ascending:false}).limit(100)),query(client.from('food_memories').select('*').eq('user_id',id).order('updated_at',{ascending:false}).limit(1000))]);combinations=saved;memories=approved;}
-  async function open(comboId){if(busy)return;if(!getUser()){document.querySelector('#accountBtn')?.click();return;}owner=getUser().id;dialog.showModal();heading.textContent='내 조합 다시 기록하기';body.replaceChildren(el('p','내 조합을 불러오는 중…'));message.textContent='';pending=recover();if(pending){pendingView();return;}
-   await task(async({query,id})=>{await load(query,id);if(comboId){const combo=combinations.find(c=>c.id===comboId)||await query(client.from('meal_combinations').select('*').eq('user_id',id).eq('id',comboId).single());editor(combo);}else list();},false,()=>body.replaceChildren(el('p','조합을 아직 불러오지 못했어요.'),button('조합 다시 불러오기',()=>void open(comboId))));
+  async function open(comboId,draft){if(busy)return;if(!getUser()){document.querySelector('#accountBtn')?.click();return;}owner=getUser().id;dialog.showModal();heading.textContent='내 조합 다시 기록하기';body.replaceChildren(el('p','내 조합을 불러오는 중…'));message.textContent='';pending=recover();if(pending){pendingView();return;}
+   await task(async({query,id})=>{await load(query,id);if(draft){const meal=await query(client.from('meals').select('id,user_id,meal_date,meal_type,foods').eq('user_id',id).eq('id',draft.request_id).maybeSingle());if(meal){savedView(meal,true);return;}}
+    if(comboId){const combo=combinations.find(c=>c.id===comboId)||await query(client.from('meal_combinations').select('*').eq('user_id',id).eq('id',comboId).single());if(draft&&combo.revision!==draft.revision)throw Error('대화 이후 조합이 바뀌었어요. 코치에게 다시 요청하거나 홈에서 최신 조합을 선택해 주세요.');editor(combo,draft);}else list();},false,()=>body.replaceChildren(el('p','조합을 아직 불러오지 못했어요.'),button('조합 다시 불러오기',()=>void open(comboId,draft))));
+  }
+  function openDraft(draft){const uuid=v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+   if(!draft||draft.version!==1||!uuid(draft.request_id)||!uuid(draft.combination_id)||!Number.isInteger(draft.revision)||draft.revision<0||!/^\d{4}-\d{2}-\d{2}$/.test(draft.day)||!['아침','점심','저녁','간식'].includes(draft.meal_type)||!['whole','servings','weight'].includes(draft.mode)||typeof draft.quantity!=='number'||!Number.isFinite(draft.quantity)||draft.quantity<=0||draft.quantity>100000)throw Error('기록 초안 정보를 확인하지 못했어요. 코치에게 다시 요청해 주세요.');
+   return open(draft.combination_id,structuredClone(draft));
   }
   function list(){heading.textContent='내 조합 다시 기록하기';message.textContent='';body.replaceChildren(el('p','저장한 재료를 불러와 이번에 먹은 양만 바꿔요. 기본 조합과 과거 기록은 유지돼요.'));
    if(!combinations.length)body.append(el('p','아직 내 조합이 없어요. 기존 식사를 조합으로 저장한 뒤 다시 사용할 수 있어요.'));
@@ -35,11 +40,11 @@
    if(combinations.length===100)body.append(el('small','최근 조합 100개를 보여드려요. 더 오래된 조합은 내 조합 관리에서 선택해 주세요.'));
    body.append(button('내 조합 만들기·관리',()=>{leave();onManage?.();}));
   }
-  function editor(initial){let combo=structuredClone(initial),overrides=[],preview=null;heading.textContent=combo.name;message.textContent='';
+  function editor(initial,draft){let combo=structuredClone(initial),overrides=[],preview=null;heading.textContent=combo.name;message.textContent=draft?'대화에서 요청한 날짜·끼니·양을 가져왔어요. 개인 분량은 재료별 버튼으로 선택해 주세요. 아직 식사로 저장하지 않았어요.':'';
    const form=el('form'),info=el('p','이번 식사에 먹은 양을 계산해요. 재료별 양 수정·제외는 이번 기록에만 적용돼요.','combinationHint');
-   const date=input('기록 날짜','date',getDay()),time=input('식사 시각','time','12:00'),kind=select('식사 종류',['아침','점심','저녁','간식'].map(x=>[x,x]),combo.meal_type);
+   const date=input('기록 날짜','date',draft?.day||getDay()),time=input('식사 시각','time','12:00'),kind=select('식사 종류',['아침','점심','저녁','간식'].map(x=>[x,x]),draft?.meal_type||combo.meal_type);
    date.n.required=true;time.n.required=true;const when=el('div',null,'combinationWhen');when.append(date.wrap,time.wrap,kind.wrap);
-   const mode=select('먹은 양의 기준',[['whole','조합 전체 기준'],['servings','인분으로 계산'],['weight','완성한 음식의 g으로 계산']],'whole'),amount=input('먹은 양','number',1);amount.n.required=true;
+   const mode=select('먹은 양의 기준',[['whole','조합 전체 기준'],['servings','인분으로 계산'],['weight','완성한 음식의 g으로 계산']],draft?.mode||'whole'),amount=input('먹은 양','number',draft?.quantity??1);amount.n.required=true;
    const calculation=el('p',null,'combinationCalculation'),rows=el('div'),totals=el('p',null,'combinationTotals');totals.setAttribute('aria-live','polite');
    const settings=el('details',null,'combinationBasis');settings.append(el('summary','전체 인분·완성 무게 설정'),el('p','아래 재료 전체가 몇 인분인지, 조리를 마친 음식 전체가 몇 g인지 입력해요. 원재료 무게를 더해 완성 무게로 사용하지 않아요.'));
    const servings=input('조합 전체 인분','number',combo.yield_servings,1000),weight=input('완성한 음식 전체 무게 (g)','number',combo.cooked_weight);
@@ -48,7 +53,7 @@
     combo=updated;combinations=combinations.map(c=>c.id===combo.id?combo:c);update(true);message.textContent='조합의 전체 분량을 저장했어요. 재료를 바꾸면 완성 무게는 다시 확인해 주세요.';
    },true));settings.append(servings.wrap,weight.wrap,saveBasis);
    const quick=el('div',null,'combinationQuick');for(const [label,value]of [['전체 그대로',1],['전체의 절반',.5],['전체의 ¼',.25]])quick.append(button(label,()=>{mode.n.value='whole';amount.n.value=String(value);overrides=[];update(true);}));
-   const review=button('식사 저장 전 확인',()=>{if(!form.reportValidity())return;try{preview=C.calculate(combo,mode.n.value,amount.n.value,overrides);const args={p_request:crypto.randomUUID(),p_combination:combo.id,p_revision:combo.revision,p_day:date.n.value,p_time:date.n.value+'T'+time.n.value+':00+09:00',p_type:kind.n.value,p_mode:mode.n.value,p_quantity:Number(amount.n.value),p_overrides:overrides.map(o=>o.excluded?{index:o.index,excluded:true}:{index:o.index,amount:Number(o.amount)})};reviewView(args,preview,()=>{heading.textContent=combo.name;body.replaceChildren(form);message.textContent='';});}catch(e){message.textContent=e.message;}});
+   const review=button('식사 저장 전 확인',()=>{if(!form.reportValidity())return;try{preview=C.calculate(combo,mode.n.value,amount.n.value,overrides);const args={p_request:draft?.request_id||crypto.randomUUID(),p_combination:combo.id,p_revision:combo.revision,p_day:date.n.value,p_time:date.n.value+'T'+time.n.value+':00+09:00',p_type:kind.n.value,p_mode:mode.n.value,p_quantity:Number(amount.n.value),p_overrides:overrides.map(o=>o.excluded?{index:o.index,excluded:true}:{index:o.index,amount:Number(o.amount)})};reviewView(args,preview,()=>{heading.textContent=combo.name;body.replaceChildren(form);message.textContent='';});}catch(e){message.textContent=e.message;}});
    function change(index,patch){overrides=overrides.filter(o=>o.index!==index);if(patch)overrides.push({index,...patch});update(false);}
    function paintRows(){rows.replaceChildren();combo.foods.forEach((food,index)=>{const card=el('section',null,'combinationIngredient'),o=overrides.find(x=>x.index===index);let normal=null;try{normal=C.scale(food,Number(food.grams)*C.basis(combo,mode.n.value,amount.n.value).ratio).grams;}catch{}
      const qty=input(food.name+' 이번 양 ('+(food.unit||'g')+')','number',o?.amount??normal??food.grams);qty.n.required=true;qty.n.disabled=!!o?.excluded;const exclude=el('input');exclude.type='checkbox';exclude.checked=!!o?.excluded;const label=el('label',null,'combinationExclude');label.append(exclude,el('span','이번 식사에서 제외'));
@@ -72,12 +77,13 @@
   }
   function reviewView(args,calculation,back){heading.textContent='식사 저장 전 확인';body.replaceChildren(el('p',args.p_day+' '+args.p_type+' · '+args.p_time.slice(11,16)),el('p',C.description(calculation)),el('p',summary(calculation.foods)),el('p','위 음식과 양을 새 식사로 저장해요. 기본 조합과 과거 기록은 유지돼요.'),button('확인하고 식사 저장',()=>{try{pending={owner,args};localStorage.setItem(journal(owner),JSON.stringify(pending));pendingView();void record();}catch{pending=null;message.textContent='중복 저장을 막기 위한 대기 정보를 이 기기에 보관하지 못했어요. 저장 공간을 확인해 주세요.';}}),button('양 다시 수정',back));message.textContent='';}
   function pendingView(){heading.textContent='식사 저장 결과 확인';body.replaceChildren(el('p','연결이 끊겼다면 이미 저장됐을 수 있어요. 같은 요청으로 결과를 확인하며 중복으로 추가하지 않아요.'),el('p',pending.args.p_day+' '+pending.args.p_type),button('같은 요청으로 저장 결과 확인',()=>void record()));}
+  function savedView(meal,existing=false){heading.textContent=existing?'이미 기록한 식사예요':'식사를 저장했어요';body.replaceChildren(el('p',meal.meal_date+' '+meal.meal_type),el('p',summary(meal.foods)),el('p',existing?'현재 서버에 저장된 음식이에요. 같은 대화의 요청으로 다시 추가하지 않아요. 새 식사는 코치에게 새로 요청해 주세요.':'기본 조합과 과거 기록은 유지됐어요.'),button('다른 조합 기록하기',()=>void open()));message.textContent='서버 저장을 확인했어요.';}
   async function record(){if(!pending)return;const attempt=pending;message.textContent='식사를 저장하고 서버 기록을 확인하는 중…';await task(async({id,query,check})=>{
    try{const result=await query(client.rpc('meallog_record_combination',attempt.args));if(result?.meal_id!==attempt.args.p_request)throw Error('저장 결과의 식사를 확인하지 못했어요. 같은 요청으로 다시 확인해 주세요.');const meal=await query(client.from('meals').select('id,user_id,meal_date,meal_type,meal_time,foods').eq('user_id',id).eq('id',result.meal_id).single());check();clearPending();heading.textContent=result.changed?'이미 저장한 식사가 변경됐어요':'식사를 저장했어요';body.replaceChildren(el('p',meal.meal_date+' '+meal.meal_type),el('p',summary(meal.foods)),el('p',result.changed?'아래는 현재 서버에 저장된 음식이에요. 같은 식사를 다시 추가하지 않았어요.':'기본 조합과 과거 기록은 유지됐어요.'),button('다른 조합 기록하기',()=>void open()));message.textContent='서버 저장을 확인했어요.';void Promise.resolve().then(refresh).catch(()=>{if(getUser()?.id===id&&dialog.open)message.textContent='서버 저장은 완료됐어요. 홈 목록은 새로고침해 주세요.';});}
    catch(e){if(/combination_changed|basis_missing|invalid_|empty_meal|recorded_meal_unavailable|request_reused/.test(e.message||'')){clearPending();body.append(button('최신 조합 목록 불러오기',()=>void open()));}throw e;}
   },true);}
   function reset(clear=false){if(clear&&owner)localStorage.removeItem(journal(owner));epoch++;controller?.abort();busy=false;writing=false;owner=getUser()?.id||null;pending=null;memories=[];combinations=[];body.replaceChildren();body.disabled=false;close.disabled=false;dialog.close();}
-  return {open,accountChanged(){if(owner!==(getUser()?.id||null))reset();},reset(){reset(true);}};
+  return {open,openDraft,accountChanged(){if(owner!==(getUser()?.id||null))reset();},reset(){reset(true);}};
  }
  window.MealLogCombinationRecord={mount};
 })();

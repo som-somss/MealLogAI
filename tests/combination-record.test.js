@@ -94,3 +94,21 @@ test('opening before sync finishes shows a retry instead of an endless loading m
  await h.open();assert.equal(h.calls.length,0);assert.doesNotMatch(h.text(),/불러오는 중/);assert.ok(h.find('button','조합 다시 불러오기'));ready=true;
  await h.click('조합 다시 불러오기');assert.ok(h.find('button','검증용 볶음밥 다시 기록'));assert.equal(h.db.meals.length,0);
 });
+
+const coachDraft=()=>({version:1,request_id:randomUUID(),combination_id:recipe().id,revision:0,day:'2026-11-07',meal_type:'저녁',mode:'servings',quantity:.5});
+test('coach draft seeds date and servings, confirms once and reopens the existing record',async()=>{
+ const h=harness(),draft=coachDraft(),source=JSON.stringify(h.db.combos);await h.panel.openDraft(draft);
+ assert.equal(h.field('기록 날짜').value,'2026-11-07');assert.equal(h.field('식사 종류').value,'저녁');assert.equal(Number(h.field('밥 이번 양 (g)').value),100);assert.equal(h.writes,0);
+ await h.click('식사 저장 전 확인');await h.click('확인하고 식사 저장');assert.equal(h.db.meals[0].id,draft.request_id);assert.equal(h.db.meals[0].meal_date,'2026-11-07');assert.equal(h.db.meals[0].foods[1].grams,25);assert.equal(h.writes,1);assert.equal(JSON.stringify(h.db.combos),source);
+ h.db.combos[0].revision++;h.db.meals[0].foods[1].grams=30;await h.panel.openDraft(draft);assert.match(h.text(),/이미 기록한 식사/);assert.match(h.text(),/30g/);assert.equal(h.find('button','식사 저장 전 확인'),undefined);assert.equal(h.writes,1);
+});
+
+test('old or malformed coach drafts cannot bypass source-version checks',async()=>{
+ const h=harness(),draft=coachDraft();h.db.combos[0].revision++;await h.panel.openDraft(draft);assert.match(h.text(),/대화 이후 조합이 바뀌었어요/);assert.equal(h.find('button','식사 저장 전 확인'),undefined);assert.equal(h.writes,0);
+ for(const patch of [{request_id:'bad'},{combination_id:'other'},{revision:-1},{quantity:Infinity},{quantity:'0.5'},{meal_type:'임의끼니'}])assert.throws(()=>h.panel.openDraft({...draft,...patch}),/초안 정보를/);
+});
+
+test('reopening a coach draft in another tab still shares the same record request',async()=>{
+ const db={combos:[recipe()],memories:[],meals:[],receipts:{}},draft=coachDraft(),first=harness({database:db}),second=harness({database:db});
+ await first.panel.openDraft(draft);await second.panel.openDraft(draft);await first.click('식사 저장 전 확인');await second.click('식사 저장 전 확인');await first.click('확인하고 식사 저장');await second.click('확인하고 식사 저장');assert.equal(db.meals.length,1);assert.equal(db.meals[0].id,draft.request_id);assert.match(second.text(),/서버 저장을 확인/);
+});
